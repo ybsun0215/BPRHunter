@@ -1,0 +1,83 @@
+[
+  {
+    "base_api_id": "GET https://apigateway.target-platform.example.com/ai/v1/getAIConfig",
+    "token_id": "apigateway.target-platform.example.com::authorization",
+    "chain": [],
+    "new_token_value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
+    "new_status": 200,
+    "original_response": "{\"data\":{}}",
+    "new_response": "{\"data\":{}}",
+    "similarity": 1.0,
+    "is_vulnerable": true,
+    "error": ""
+  },
+  {
+    "base_api_id": "GET https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list",
+    "token_id": "apigateway.target-platform.example.com::authorization",
+    "chain": [],
+    "new_token_value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
+    "new_status": 200,
+    "original_response": "{\"success\":true,\"data\":{}",
+    "new_response": "{\"success\":true,\"data\":{}",
+    "similarity": 1.0,
+    "is_vulnerable": true,
+    "error": ""
+  },
+  {
+    "base_api_id": "POST https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search",
+    "token_id": "apigateway.target-platform.example.com::authorization",
+    "chain": [],
+    "new_token_value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
+    "new_status": 200,
+    "original_response": "{\"success\":true,\"data\":{}}",
+    "new_response": "{\"success\":true,\"data\":{}}",
+    "similarity": 1.0,
+    "is_vulnerable": true,
+    "error": ""
+  },
+  {
+    "base_api_id": "GET https://apigateway.target-platform.example.com/ai/v1/getAIConfig",
+    "token_id": "apigateway.target-platform.example.com::authorization",
+    "chain": [
+      "apigateway.target-platform.example.com::refreshToken",
+      "apigateway.target-platform.example.com::authorization"
+    ],
+    "new_token_value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
+    "new_status": 200,
+    "original_response": "{\"data\":{}}",
+    "new_response": "{\"data\":{}}",
+    "similarity": 1.0,
+    "is_vulnerable": true,
+    "error": ""
+  },
+  {
+    "base_api_id": "GET https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list",
+    "token_id": "apigateway.target-platform.example.com::authorization",
+    "chain": [
+      "apigateway.target-platform.example.com::refreshToken",
+      "apigateway.target-platform.example.com::authorization"
+    ],
+    "new_token_value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
+    "new_status": 200,
+    "original_response": "{\"success\":true,\"data\":{}",
+    "new_response": "{\"success\":true,\"data\":{}",
+    "similarity": 1.0,
+    "is_vulnerable": true,
+    "error": ""
+  },
+  {
+    "base_api_id": "POST https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search",
+    "token_id": "apigateway.target-platform.example.com::authorization",
+    "chain": [
+      "apigateway.target-platform.example.com::refreshToken",
+      "apigateway.target-platform.example.com::authorization"
+    ],
+    "new_token_value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
+    "new_status": 200,
+    "original_response": "{\"success\":true,\"data\":{}}",
+    "new_response": "{\"success\":true,\"data\":{}}",
+    "similarity": 1.0,
+    "is_vulnerable": true,
+    "error": ""
+  }
+]

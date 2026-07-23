@@ -1,0 +1,95 @@
+{
+  "nodes": [
+    {
+      "id": "apigateway.target-platform.example.com::authorization",
+      "type": "auth_token",
+      "host": "apigateway.target-platform.example.com",
+      "field": "authorization",
+      "label": "authorization"
+    },
+    {
+      "id": "apigateway.target-platform.example.com::refreshToken",
+      "type": "refresh_token",
+      "host": "apigateway.target-platform.example.com",
+      "field": "refreshToken",
+      "label": "refreshToken"
+    },
+    {
+      "id": "POST https://apigateway.target-platform.example.com/app/iam/api/v1/auth",
+      "type": "api",
+      "method": "POST",
+      "url": "https://apigateway.target-platform.example.com/app/iam/api/v1/auth",
+      "label": "POST https://apigateway.target-platform.example.com/app/iam/api/v1/auth"
+    },
+    {
+      "id": "GET https://apigateway.target-platform.example.com/app/iam/api/v1/refreshToken",
+      "type": "api",
+      "method": "GET",
+      "url": "https://apigateway.target-platform.example.com/app/iam/api/v1/refreshToken",
+      "label": "GET https://apigateway.target-platform.example.com/app/iam/api/v1/refreshToken"
+    },
+    {
+      "id": "GET https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list",
+      "type": "api",
+      "method": "GET",
+      "url": "https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list",
+      "label": "GET https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list"
+    },
+    {
+      "id": "GET https://apigateway.target-platform.example.com/ai/v1/getAIConfig",
+      "type": "api",
+      "method": "GET",
+      "url": "https://apigateway.target-platform.example.com/ai/v1/getAIConfig",
+      "label": "GET https://apigateway.target-platform.example.com/ai/v1/getAIConfig"
+    },
+    {
+      "id": "POST https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search",
+      "type": "api",
+      "method": "POST",
+      "url": "https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search",
+      "label": "POST https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search"
+    }
+  ],
+  "edges": [
+    {
+      "src": "GET https://apigateway.target-platform.example.com/app/iam/api/v1/refreshToken",
+      "type": "Issue",
+      "dst": "apigateway.target-platform.example.com::authorization"
+    },
+    {
+      "src": "POST https://apigateway.target-platform.example.com/app/iam/api/v1/auth",
+      "type": "Issue",
+      "dst": "apigateway.target-platform.example.com::authorization"
+    },
+    {
+      "src": "POST https://apigateway.target-platform.example.com/app/iam/api/v1/auth",
+      "type": "Issue",
+      "dst": "apigateway.target-platform.example.com::refreshToken"
+    },
+    {
+      "src": "apigateway.target-platform.example.com::authorization",
+      "type": "UsedIn",
+      "dst": "GET https://apigateway.target-platform.example.com/ai/v1/getAIConfig"
+    },
+    {
+      "src": "apigateway.target-platform.example.com::authorization",
+      "type": "UsedIn",
+      "dst": "GET https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list"
+    },
+    {
+      "src": "apigateway.target-platform.example.com::authorization",
+      "type": "UsedIn",
+      "dst": "POST https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search"
+    },
+    {
+      "src": "apigateway.target-platform.example.com::refreshToken",
+      "type": "Generate",
+      "dst": "apigateway.target-platform.example.com::authorization"
+    },
+    {
+      "src": "apigateway.target-platform.example.com::refreshToken",
+      "type": "UsedIn",
+      "dst": "GET https://apigateway.target-platform.example.com/app/iam/api/v1/refreshToken"
+    }
+  ]
+}

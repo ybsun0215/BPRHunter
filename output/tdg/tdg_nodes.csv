@@ -1,0 +1,8 @@
+"id","type","host","field","method","url","label"
+"GET https://apigateway.target-platform.example.com/ai/v1/getAIConfig","api","","","GET","https://apigateway.target-platform.example.com/ai/v1/getAIConfig","GET https://apigateway.target-platform.example.com/ai/v1/getAIConfig"
+"GET https://apigateway.target-platform.example.com/app/iam/api/v1/refreshToken","api","","","GET","https://apigateway.target-platform.example.com/app/iam/api/v1/refreshToken","GET https://apigateway.target-platform.example.com/app/iam/api/v1/refreshToken"
+"GET https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list","api","","","GET","https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list","GET https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list"
+"POST https://apigateway.target-platform.example.com/app/iam/api/v1/auth","api","","","POST","https://apigateway.target-platform.example.com/app/iam/api/v1/auth","POST https://apigateway.target-platform.example.com/app/iam/api/v1/auth"
+"POST https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search","api","","","POST","https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search","POST https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search"
+"apigateway.target-platform.example.com::authorization","auth_token","apigateway.target-platform.example.com","authorization","","","authorization"
+"apigateway.target-platform.example.com::refreshToken","refresh_token","apigateway.target-platform.example.com","refreshToken","","","refreshToken"
