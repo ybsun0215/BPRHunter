@@ -25,9 +25,9 @@ BPRHunter runs as a three-stage pipeline. Each stage reads its inputs from disk,
 
 | Stage | Input | Output |
 |---|---|---|
-| 🔗 **TDG Construction** | HAR traffic | `auth_tokens.csv`, `refresh_tokens.csv`, `exchange_tokens.csv`, `tdg.json` |
-| 🧠 **VF Logic Inference** | HAR traffic, smali bytecode | `output/vfs/<domain>/update_vf.py`, `_chat_histories.json` |
-| 🎯 **BPR Detection** | `tdg.json`, HAR traffic, VF scripts | `output/testcases/<token>.json`, `output/results/<token>.json` |
+| **TDG Construction** | HAR traffic | `auth_tokens.csv`, `refresh_tokens.csv`, `exchange_tokens.csv`, `tdg.json` |
+| **VF Logic Inference** | HAR traffic, smali bytecode | `output/vfs/<domain>/update_vf.py`, `_chat_histories.json` |
+| **BPR Detection** | `tdg.json`, HAR traffic, VF scripts | `output/testcases/<token>.json`, `output/results/<token>.json` |
 
 ---
 
