@@ -17,7 +17,7 @@ from .token_utils import (
 
 # ── Output paths ─────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HAR_FILE = os.path.join(BASE_DIR, "input", "traffic", "xxx.har")
+HAR_FILE = os.path.join(BASE_DIR, "input", "traffic", "demo.har")
 
 TDG_NODES_CSV = os.path.join(BASE_DIR, "output", "tdg", "tdg_nodes.csv")
 TDG_EDGES_CSV = os.path.join(BASE_DIR, "output", "tdg", "tdg_edges.csv")
