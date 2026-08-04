@@ -47,15 +47,15 @@ pip install -r requirements.txt
 ### ⚙️ Configure
 
 Set your API key, then review `config.py`.
-Recently, we found that DeepSeek seems to offer a higher cost-performance ratio. Therefore, we use DeepSeek's models by default.
+Recently, we found that DeepSeek appears to offer better cost-effectiveness, so it can be used as the base model.
 
 ```python
 HAR_FILE      = "input/traffic/demo.har"   # path to your HAR capture
 SMALI_DIR     = "input/smali/targetapp"    # root of smali package tree
 API_BASE_URL  = "https://api.deepseek.com"
-MODEL         = "deepseek-v4-pro"          # inference (reasoning)
-CODEGEN_MODEL = "deepseek-v4-flash"        # code generation (stable)
-DEMO_MODE     = True                       # mock HTTP — no real network calls
+MODEL         = "deepseek-xxx"          # inference (reasoning)
+CODEGEN_MODEL = "deepseek-xxx"          # code generation (stable)
+DEMO_MODE     = True                    # mock HTTP — no real network calls
 ```
 
 ### ▶️ Run
