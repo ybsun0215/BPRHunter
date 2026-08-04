@@ -61,9 +61,9 @@ API_BASE_URL = "https://api.deepseek.com"
 
 API_KEY = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
-MODEL = "deepseek-v4-pro"
+MODEL = "xxx"
 
-CODEGEN_MODEL = "deepseek-v4-flash"
+CODEGEN_MODEL = "xxx"
 
 LLM_TIMEOUT = 300
 
