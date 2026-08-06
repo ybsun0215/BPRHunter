@@ -1,6 +1,7 @@
 import json
 from urllib.parse import urlparse
 from config import SKIP_METHODS
+from .token_utils import domain_key
 
 
 def load_har(har_file: str) -> list:
@@ -25,7 +26,8 @@ def load_har(har_file: str) -> list:
     deduped = []
     for e in entries:
         url = e.get("request", {}).get("url", "")
-        path = urlparse(url).scheme + "://" + urlparse(url).netloc + urlparse(url).path
+        parsed = urlparse(url)
+        path = parsed.scheme.lower() + "://" + domain_key(url) + parsed.path
         if path not in seen_paths:
             seen_paths.add(path)
             deduped.append(e)

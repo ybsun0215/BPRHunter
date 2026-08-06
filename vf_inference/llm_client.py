@@ -3,8 +3,8 @@ llm_client.py
 Generic LLM client supporting any OpenAI-compatible API endpoint
 (e.g., DeepSeek, OpenAI, Moonshot, etc.).
 
-Uses ``requests`` directly (not the OpenAI SDK) for maximum reliability
-and to avoid httpx keep-alive / HTTP/2 compatibility issues.
+Uses ``requests`` directly (not the OpenAI SDK) and consumes SSE streaming
+responses so large generations are not lost to malformed chunk terminators.
 
 Used by Stage 2 (VF Logic Inference) to call the LLM for:
   - Iterative inference (next-action selection)
@@ -71,6 +71,11 @@ def call_llm(
     model: str | None = None,
 ) -> str:
 
+    if not config.API_KEY:
+        raise RuntimeError(
+            "BPRHUNTER_API_KEY is not set. Export it before running Stage 2."
+        )
+
     # Resolve model
     mdl = model or config.MODEL
 
@@ -81,6 +86,7 @@ def call_llm(
     body: dict = {
         "model": mdl,
         "messages": full_messages,
+        "stream": True,
     }
 
     eff = reasoning_effort
@@ -118,21 +124,13 @@ def call_llm(
                 headers={
                     "Authorization": f"Bearer {config.API_KEY}",
                     "Content-Type": "application/json; charset=utf-8",
-                    "Connection": "close",       # fresh connection each time
-                    "Accept": "application/json",
+                    "Accept": "text/event-stream",
                 },
                 timeout=(connect_timeout, read_timeout),
+                stream=True,
             )
             resp.raise_for_status()
-            data = resp.json()
-            content = data["choices"][0]["message"]["content"]
-            # Some DeepSeek responses have empty content when thinking is on;
-            # fall back to reasoning_content if available.
-            if not content:
-                reasoning = data["choices"][0]["message"].get("reasoning_content", "")
-                if reasoning:
-                    content = _extract_final_answer(reasoning)
-            return content or ""
+            return _read_streaming_response(resp)
         except (
             requests.exceptions.Timeout,
             requests.exceptions.ConnectionError,
@@ -171,6 +169,66 @@ def call_llm(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _read_streaming_response(resp: requests.Response) -> str:
+    """Reassemble one OpenAI-compatible SSE response.
+
+    DeepSeek occasionally emits an invalid HTTP chunk terminator after the
+    final SSE event. Stop as soon as ``finish_reason`` or ``[DONE]`` arrives,
+    when the model response is already complete.
+    """
+
+    resp.encoding = "utf-8"
+    content_parts: list[str] = []
+    reasoning_parts: list[str] = []
+    complete = False
+
+    for raw_line in resp.iter_lines(decode_unicode=True):
+        if not raw_line:
+            continue
+        line = raw_line.strip()
+        if not line.startswith("data:"):
+            continue
+
+        payload = line[5:].strip()
+        if payload == "[DONE]":
+            complete = True
+            break
+
+        try:
+            event = json.loads(payload)
+        except json.JSONDecodeError as exc:
+            raise requests.exceptions.ChunkedEncodingError(
+                f"Malformed SSE event: {exc}"
+            ) from exc
+
+        if event.get("error"):
+            raise requests.exceptions.RequestException(str(event["error"]))
+
+        choices = event.get("choices") or []
+        if not choices:
+            continue
+
+        choice = choices[0]
+        delta = choice.get("delta") or choice.get("message") or {}
+        content_parts.append(delta.get("content") or "")
+        reasoning_parts.append(delta.get("reasoning_content") or "")
+
+        if choice.get("finish_reason") is not None:
+            complete = True
+            break
+
+    if not complete:
+        raise requests.exceptions.ChunkedEncodingError(
+            "SSE stream ended before finish_reason/[DONE]"
+        )
+
+    content = "".join(content_parts)
+    if not content:
+        reasoning = "".join(reasoning_parts)
+        if reasoning:
+            content = _extract_final_answer(reasoning)
+    return content or ""
 
 def _backoff(attempt: int) -> float:
     """Compute exponential backoff delay with jitter, capped."""

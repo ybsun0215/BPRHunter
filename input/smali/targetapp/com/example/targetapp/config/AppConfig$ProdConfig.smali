@@ -8,11 +8,11 @@
 
 .field public static final SECRET_KEY:Ljava/lang/String; = "PLACEHOLDER_SECRET"
 
-.field public static final VF_HEADER:Ljava/lang/String; = "v587sign"
+.field public static final VF_HEADER:Ljava/lang/String; = "sign"
 
-.field public static final DATE_HEADER:Ljava/lang/String; = "x-sdk-date"
+.field public static final DATE_HEADER:Ljava/lang/String; = "x-demo-date"
 
-.field public static final TIMESTAMP_HEADER:Ljava/lang/String; = "x-ca-timestamp"
+.field public static final TIMESTAMP_HEADER:Ljava/lang/String; = "x-demo-timestamp"
 
 
 # direct methods

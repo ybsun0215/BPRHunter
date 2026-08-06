@@ -15,6 +15,7 @@ import config
 # ---------------------------------------------------------------------------
 
 _DEMO_HAR_CACHE: list[dict] | None = None
+_DEMO_HAR_CACHE_PATH: str | None = None
 
 # Where the original request objects are kept (before VF update mangles them)
 _ORIGINAL_REQUESTS: dict[str, dict] = {}
@@ -22,14 +23,17 @@ _ORIGINAL_REQUESTS: dict[str, dict] = {}
 
 def _load_demo_har() -> list[dict]:
     """Load and cache the demo HAR file."""
-    global _DEMO_HAR_CACHE
-    if _DEMO_HAR_CACHE is None:
-        har_path = getattr(config, "DEMO_HAR_PATH", None)
-        if har_path is None:
-            har_path = os.path.join(config.BASE_DIR, "input", "traffic", "demo.har")
+    global _DEMO_HAR_CACHE, _DEMO_HAR_CACHE_PATH
+    har_path = getattr(config, "DEMO_HAR_PATH", None) or getattr(config, "HAR_FILE", None)
+    if har_path is None:
+        har_path = os.path.join(config.BASE_DIR, "input", "traffic", "demo.har")
+    har_path = os.path.abspath(har_path)
+
+    if _DEMO_HAR_CACHE is None or _DEMO_HAR_CACHE_PATH != har_path:
         with open(har_path, encoding="utf-8") as fh:
             har = _json.load(fh)
         _DEMO_HAR_CACHE = har["log"]["entries"]
+        _DEMO_HAR_CACHE_PATH = har_path
     return _DEMO_HAR_CACHE
 
 

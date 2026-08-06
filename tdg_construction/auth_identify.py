@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 from config import MIN_ALNUM_LENGTH, AUTH_TOKEN_CSV
 from .token_utils import (
-    alnum_len, bearer_strip, flatten_json, get_host,
+    alnum_len, bearer_strip, domain_key, flatten_json, get_host,
     extract_request_headers_filtered,
 )
 
@@ -251,6 +251,7 @@ def identify_auth_tokens(entries: list, output_csv: str = AUTH_TOKEN_CSV) -> lis
 
             rows.append({
                 "Host":                   host,
+                "Issuer Host":            domain_key(sample_info["resp_url"]),
                 "Field Name":             field_name,
                 "Endpoint Count":         len(endpoint_set),
                 "Missing Endpoint Count": len(missing_eps),
@@ -267,7 +268,7 @@ def identify_auth_tokens(entries: list, output_csv: str = AUTH_TOKEN_CSV) -> lis
 
     # ── Step 5: Write CSV ────────────────────────────────────────────────────
     fieldnames = [
-        "Host", "Field Name", "Endpoint Count", "Missing Endpoint Count",
+        "Host", "Issuer Host", "Field Name", "Endpoint Count", "Missing Endpoint Count",
         "Distinct Value Count", "Traceable Value Count",
         "Sample Value", "Source Response Key", "Source Response URL",
         "All Values (JSON)",

@@ -15,6 +15,7 @@ from .case_gen import (
     append_test_case_log,
     clear_test_case_log,
     apply_vf_update,
+    require_verified_vf_scripts,
 )
 
 from .resp_collect import (

@@ -4,129 +4,145 @@ import json
 import datetime
 import uuid
 import urllib.parse
-import time
 
-ACCESS_KEY = "PLACEHOLDER_ACCESS"
-SECRET_KEY = "PLACEHOLDER_SECRET"
+ACCESS_KEY = 'PLACEHOLDER_ACCESS'
+SECRET_KEY = 'PLACEHOLDER_SECRET'
 
-def url_encode(path, keep_slashes):
-    """Mimics HttpUtils.urlEncode"""
-    # URLEncoder.encode would produce '+' for spaces, so we mimic that behaviour
-    encoded = urllib.parse.quote(path, safe='')
-    # Java URLEncoder.encode turns space into '+', but Python quote uses %20.
-    # We want to keep %20, so we replace any '+' (shouldn't occur) with %20 for safety
-    encoded = encoded.replace('+', '%20')
-    # Replace '*' with %2A
-    encoded = encoded.replace('*', '%2A')
-    # Replace %7E with ~
-    encoded = encoded.replace('%7E', '~')
-    if keep_slashes:
-        encoded = encoded.replace('%2F', '/')
-    return encoded
 
-def compute_v587sign(headers, method, path, body, access_key, secret_key, x_sdk_date):
-    """Implements SignUtils.computeV587sign exactly as per smali."""
-    # Build sorted header keys (case-insensitive comparator)
-    sorted_keys = sorted(headers.keys(), key=lambda k: k.lower())
-
-    # Determine content hash
-    content_hash = None
-    if "x-sdk-content-sha256" in headers:
-        content_hash = headers["x-sdk-content-sha256"]
-    else:
-        if body is None:
-            body_bytes = b""
-        elif isinstance(body, str):
-            body_bytes = body.encode('utf-8')
-        else:
-            # Assume dict -> JSON
-            body_bytes = json.dumps(body, separators=(',', ':')).encode('utf-8')
-        sha256_hash = hashlib.sha256(body_bytes).hexdigest()
-        content_hash = sha256_hash
-
-    # Build canonical headers string and signed headers string
-    canonical_headers = ""
-    signed_headers = ""
-    for key in sorted_keys:
-        if key.lower() == "v587sign":
+def _find_header_key(headers, name):
+    if name in headers:
+        return name
+    target = name.lower()
+    for key in headers:
+        try:
+            if str(key).lower() == target:
+                return key
+        except Exception:
             continue
-        # Add to signed headers (semicolon separated)
-        if signed_headers:
-            signed_headers += ";"
-        lower_key = key.lower()
-        signed_headers += lower_key
+    return None
 
-        # Append header line: "lowercase_key:value\n"
-        value = headers[key].strip()
-        canonical_headers += lower_key + ":" + value + "\n"
 
-    # Build canonical request
-    if path is None:
-        # If path is None, skip building canonical request (v11 remains empty)
-        canonical_request = ""
+def _header_value(headers, name):
+    key = _find_header_key(headers, name)
+    if key is None:
+        return None
+    value = headers[key]
+    if value is None:
+        return None
+    return str(value)
+
+
+def _body_bytes(body):
+    if body is None:
+        return b''
+    if isinstance(body, str):
+        return body.encode('utf-8')
+    if isinstance(body, (bytes, bytearray)):
+        return bytes(body)
+    return json.dumps(body).encode('utf-8')
+
+
+def _canonical_uri(path):
+    if path is None or path == '':
+        return '/'
+    raw_path = urllib.parse.urlsplit(str(path)).path or '/'
+    decoded_path = urllib.parse.unquote(raw_path)
+    segments = decoded_path.split('/')
+    encoded_segments = [urllib.parse.quote(seg, safe='-_.~') for seg in segments]
+    result = '/'.join(encoded_segments)
+    if not result.startswith('/'):
+        result = '/' + result
+    if not result.endswith('/'):
+        result += '/'
+    return result
+
+
+def _compute_sign(method, path, headers, body, date_value):
+    content_hash = _header_value(headers, 'x-demo-content-sha256')
+    if content_hash is None:
+        content_hash = hashlib.sha256(_body_bytes(body)).hexdigest()
+
+    header_items = []
+    for key, value in headers.items():
+        header_name = str(key)
+        if header_name.lower() == 'sign':
+            continue
+        value_str = '' if value is None else str(value)
+        header_items.append((header_name.lower(), header_name, value_str.strip()))
+
+    header_items.sort(key=lambda item: (item[0], item[1]))
+
+    canonical_headers = ''.join(f'{lower}:{value}\n' for lower, _, value in header_items)
+    signed_headers = ';'.join(lower for lower, _, _ in header_items)
+
+    if path is None or path == '':
+        canonical_request = ''
     else:
-        if path == "":
-            path = "/"
-        else:
-            # Parse URI to get path component, apply urlEncode
-            # We don't have java.net.URI in Python, but we can use urllib.parse
-            parsed = urllib.parse.urlparse(path)
-            path_encoded = url_encode(parsed.path, keep_slashes=True)
-            if not path_encoded.startswith("/"):
-                path_encoded = "/" + path_encoded
-            if not path_encoded.endswith("/"):
-                path_encoded += "/"
-            path = path_encoded
+        canonical_uri = _canonical_uri(path)
+        canonical_request = (
+            f'{method}\n'
+            f'{canonical_uri}\n'
+            f'\n'
+            f'{canonical_headers}'
+            f'{signed_headers}\n'
+            f'{content_hash}'
+        )
 
-        # Build canonical request: method + \n + path + \n\n + canonical_headers + signed_headers + \n + content_hash
-        canonical_request = method + "\n" + path + "\n\n" + canonical_headers + signed_headers + "\n" + content_hash
+    hashed_canonical_request = hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()
+    string_to_sign = f'DEMO-HMAC-SHA256\n{date_value}\n{hashed_canonical_request}'
 
-    # SHA256 of canonical request
-    canonical_hash = hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()
+    signature = hmac.new(
+        SECRET_KEY.encode('utf-8'),
+        string_to_sign.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
 
-    # Build string to sign
-    string_to_sign = "SDK-HMAC-SHA256\n" + x_sdk_date + "\n" + canonical_hash
-
-    # HMAC-SHA256 using secret key
-    secret = secret_key.encode('utf-8')
-    hmac_obj = hmac.new(secret, string_to_sign.encode('utf-8'), hashlib.sha256)
-    signature = hmac_obj.hexdigest()
-
-    # Build final authorization header value
-    auth_value = "SDK-HMAC-SHA256 Access=" + access_key + ", SignedHeaders=" + signed_headers + ", Signature=" + signature
-    return auth_value
-
-def update_vf(request: dict) -> dict:
-    """Generates VF fields for the request."""
-    headers = request.get('headers', {}).copy()
-    method = request.get('method', 'GET')
-    path = request.get('path', '/')
-    body = request.get('body', None)
-    query = request.get('query', {})
-
-    # Ephemeral VFs: generate only if missing
-    if 'x-sdk-date' not in headers:
-        now = datetime.datetime.utcnow()
-        headers['x-sdk-date'] = now.strftime('%Y%m%dT%H%M%SZ')
-
-    if 'x-ca-timestamp' not in headers:
-        timestamp_ms = int(time.time() * 1000)
-        headers['x-ca-timestamp'] = str(timestamp_ms)
-
-    x_sdk_date = headers['x-sdk-date']
-
-    # Compute v587sign (always recompute)
-    v587sign_value = compute_v587sign(
-        headers=headers,
-        method=method,
-        path=path,
-        body=body,
-        access_key=ACCESS_KEY,
-        secret_key=SECRET_KEY,
-        x_sdk_date=x_sdk_date
+    return (
+        f'DEMO-HMAC-SHA256 Access={ACCESS_KEY}, '
+        f'SignedHeaders={signed_headers}, '
+        f'Signature={signature}'
     )
-    headers['v587sign'] = v587sign_value
 
-    # Return updated request dict
-    request['headers'] = headers
-    return request
+
+def update_vf(request):
+    if request is None:
+        request = {}
+
+    updated = dict(request)
+    headers = request.get('headers')
+    headers = dict(headers) if isinstance(headers, dict) else {}
+
+    method = request.get('method', 'GET')
+    if method is None:
+        method = 'GET'
+    path = request.get('path', '/')
+    body = request.get('body')
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    timestamp_key = _find_header_key(headers, 'x-demo-timestamp')
+    if timestamp_key is None:
+        timestamp_ms = int(now.timestamp() * 1000)
+        headers['x-demo-timestamp'] = str(timestamp_ms)
+
+    date_key = _find_header_key(headers, 'x-demo-date')
+    if date_key is None:
+        date_value = now.strftime('%Y%m%dT%H%M%SZ')
+        headers['x-demo-date'] = date_value
+    else:
+        date_value = str(headers[date_key])
+
+    signature = _compute_sign(method, path, headers, body, date_value)
+
+    new_headers = {}
+    for key, value in headers.items():
+        try:
+            skip = str(key).lower() == 'sign'
+        except Exception:
+            skip = False
+        if not skip:
+            new_headers[key] = value
+    new_headers['sign'] = signature
+
+    updated['headers'] = new_headers
+    return updated

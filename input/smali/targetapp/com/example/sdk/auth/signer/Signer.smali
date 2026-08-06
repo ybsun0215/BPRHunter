@@ -4,7 +4,7 @@
 
 
 # static fields
-.field public static final AUTHORIZATION:Ljava/lang/String; = "v587sign"
+.field public static final AUTHORIZATION:Ljava/lang/String; = "sign"
 
 .field private static final AUTHORIZATION_PATTERN_SHA256:Ljava/util/regex/Pattern;
 
@@ -12,11 +12,11 @@
 
 .field public static final LINE_SEPARATOR:Ljava/lang/String; = "\n"
 
-.field public static final SDK_SIGNING_ALGORITHM:Ljava/lang/String; = "SDK-HMAC-SHA256"
+.field public static final DEMO_SIGNING_ALGORITHM:Ljava/lang/String; = "DEMO-HMAC-SHA256"
 
-.field public static final X_SDK_CONTENT_SHA256:Ljava/lang/String; = "x-sdk-content-sha256"
+.field public static final X_DEMO_CONTENT_SHA256:Ljava/lang/String; = "x-demo-content-sha256"
 
-.field public static final X_SDK_DATE:Ljava/lang/String; = "X-Sdk-Date"
+.field public static final X_DEMO_DATE:Ljava/lang/String; = "X-Demo-Date"
 
 
 # instance fields
@@ -27,7 +27,7 @@
 .method static constructor <clinit>()V
     .registers 1
 
-    const-string v0, "SDK-HMAC-SHA256\\s+Access=([^,]+),\\s?SignedHeaders=([^,]+),\\s?Signature=(\\w+)"
+    const-string v0, "DEMO-HMAC-SHA256\\s+Access=([^,]+),\\s?SignedHeaders=([^,]+),\\s?Signature=(\\w+)"
 
     invoke-static {v0}, Ljava/util/regex/Pattern;->compile(Ljava/lang/String;)Ljava/util/regex/Pattern;
 
@@ -43,7 +43,7 @@
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
-    const-string v0, "SDK-HMAC-SHA256"
+    const-string v0, "DEMO-HMAC-SHA256"
 
     iput-object v0, p0, Lcom/example/sdk/auth/signer/Signer;->messageDigestAlgorithm:Ljava/lang/String;
 
@@ -230,7 +230,7 @@
 .method protected calculateContentHash(Lcom/example/apigateway/sdk/utils/Request;)Ljava/lang/String;
     .registers 3
 
-    const-string v0, "x-sdk-content-sha256"
+    const-string v0, "x-demo-content-sha256"
 
     invoke-virtual {p0, p1, v0}, Lcom/example/sdk/auth/signer/Signer;->getHeader(Lcom/example/apigateway/sdk/utils/Request;Ljava/lang/String;)Ljava/lang/String;
 
@@ -872,7 +872,7 @@
         }
     .end annotation
 
-    const-string v0, "X-Sdk-Date"
+    const-string v0, "X-Demo-Date"
 
     invoke-virtual {p0, p1, v0}, Lcom/example/sdk/auth/signer/Signer;->getHeader(Lcom/example/apigateway/sdk/utils/Request;Ljava/lang/String;)Ljava/lang/String;
 
@@ -943,7 +943,7 @@
 
     move-result-object v0
 
-    const-string v1, "v587sign"
+    const-string v1, "sign"
 
     invoke-virtual {p1, v1, v0}, Lcom/example/apigateway/sdk/utils/Request;->addHeader(Ljava/lang/String;Ljava/lang/String;)V
 

@@ -4,15 +4,15 @@
 
 
 # static fields
-.field private static final VF_SIGN:Ljava/lang/String; = "v587sign"
+.field private static final VF_SIGN:Ljava/lang/String; = "sign"
 
-.field private static final SDK_DATE:Ljava/lang/String; = "x-sdk-date"
+.field private static final DEMO_DATE:Ljava/lang/String; = "x-demo-date"
 
-.field private static final CA_TIMESTAMP:Ljava/lang/String; = "x-ca-timestamp"
+.field private static final DEMO_TIMESTAMP:Ljava/lang/String; = "x-demo-timestamp"
 
-.field private static final CONTENT_SHA256:Ljava/lang/String; = "x-sdk-content-sha256"
+.field private static final CONTENT_SHA256:Ljava/lang/String; = "x-demo-content-sha256"
 
-.field private static final ALGORITHM:Ljava/lang/String; = "SDK-HMAC-SHA256"
+.field private static final ALGORITHM:Ljava/lang/String; = "DEMO-HMAC-SHA256"
 
 .field private static final LINE_SEP:Ljava/lang/String; = "\n"
 
@@ -26,7 +26,7 @@
     return-void
 .end method
 
-.method public static computeV587sign(Ljava/util/Map;)Ljava/lang/String;
+.method public static computeSign(Ljava/util/Map;)Ljava/lang/String;
     .registers 16
     .annotation system Ldalvik/annotation/Signature;
         value = {
@@ -87,7 +87,7 @@
 
     check-cast v5, Ljava/lang/String;
 
-    const-string v6, "x-sdk-date"
+    const-string v6, "x-demo-date"
 
     invoke-interface {p0, v6}, Ljava/util/Map;->get(Ljava/lang/Object;)Ljava/lang/Object;
 
@@ -113,7 +113,7 @@
 
     invoke-static {v7, v9}, Ljava/util/Arrays;->sort([Ljava/lang/Object;Ljava/util/Comparator;)V
 
-    const-string v9, "x-sdk-content-sha256"
+    const-string v9, "x-demo-content-sha256"
 
     invoke-interface {v0, v9}, Ljava/util/Map;->get(Ljava/lang/Object;)Ljava/lang/Object;
 
@@ -171,7 +171,7 @@
 
     aget-object v13, v7, v8
 
-    const-string v14, "v587sign"
+    const-string v14, "sign"
 
     invoke-virtual {v13, v14}, Ljava/lang/String;->equalsIgnoreCase(Ljava/lang/String;)Z
 
@@ -341,7 +341,7 @@
 
     invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
 
-    const-string v2, "SDK-HMAC-SHA256"
+    const-string v2, "DEMO-HMAC-SHA256"
 
     invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
@@ -397,7 +397,7 @@
 
     invoke-direct {v1}, Ljava/lang/StringBuilder;-><init>()V
 
-    const-string v2, "SDK-HMAC-SHA256 Access="
+    const-string v2, "DEMO-HMAC-SHA256 Access="
 
     invoke-virtual {v1, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 

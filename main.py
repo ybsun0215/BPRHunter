@@ -93,6 +93,7 @@ def run_stage2() -> None:
 
     import config
     from pathlib import Path
+    from tdg_construction.token_utils import domain_key
     from tdg_construction.har_loader import load_har
     from vf_inference.vf_identification import (
         identify_dynamic_fields,
@@ -101,7 +102,10 @@ def run_stage2() -> None:
     )
     from vf_inference.logic_inference import run_iterative_inference
     from vf_inference.code_generation import refine_domain_script
-    from vf_inference.verification import verify_domain_script
+    from vf_inference.verification import (
+        verify_domain_script,
+        write_verification_manifest,
+    )
 
     raw_entries = load_har(config.HAR_FILE)
     traffic = parse_har_entries(raw_entries)
@@ -109,7 +113,10 @@ def run_stage2() -> None:
     # Step 2.1: VF Identification (per domain)
     if config.MANUAL_VFS:
         print("\n[Stage 2.1] Using manually specified VFs from config.MANUAL_VFS")
-        vfs_by_domain = config.MANUAL_VFS
+        vfs_by_domain: dict[str, list[str]] = {}
+        for raw_domain, fields in config.MANUAL_VFS.items():
+            key = domain_key(raw_domain)
+            vfs_by_domain.setdefault(key, []).extend(fields)
     else:
         print("\n[Stage 2.1] Identifying dynamic VFs from traffic")
         vfs_by_domain = identify_dynamic_fields(traffic)
@@ -126,6 +133,8 @@ def run_stage2() -> None:
     # Step 2.2–2.3: Per-field inference → in-chat code generation
     import json as _json
     from vf_inference.code_generation import _extract_code_from_chat_history as _extract_code
+
+    failed_domains: list[str] = []
 
     for domain, vf_list in vfs_by_domain.items():
         print(f"\n{'#' * 60}")
@@ -199,6 +208,15 @@ def run_stage2() -> None:
 
         if not code:
             print("  [!] Code generation failed — no code in chat history.")
+            write_verification_manifest(
+                out_dir,
+                domain=domain,
+                vf_fields=vf_list,
+                verified=False,
+                reason="Code generation produced no update_vf function.",
+                source_path=config.HAR_FILE,
+            )
+            failed_domains.append(domain)
             continue
 
         print(f"\n[Stage 2.3] Code extracted from chat ({len(code.splitlines())} lines)")
@@ -206,50 +224,56 @@ def run_stage2() -> None:
         # Step 2.4: Verify & refine (smali-based, no inference-model dependency)
         print(f"\n[Stage 2.4] Verifying domain script")
 
-        from vf_inference.verification import _run_verification, _find_sample
         from vf_inference.code_generation import _extract_inference_conclusions
 
-        _sample = _find_sample(vf_list, domain_traffic)
-        final_code = code
-        verified = False
-
         # Build smali context once — reused for every refine iteration
-        _primary_vf = [f for f in vf_list if f not in ("x-ca-timestamp", "x-sdk-date")]
+        _primary_vf = [f for f in vf_list if not _is_simple_ephemeral(f)]
         _primary_vf = _primary_vf[0] if _primary_vf else vf_list[0]
         _primary_history = chat_histories.get(_primary_vf, [])
         _smali_context = _extract_inference_conclusions(_primary_history)
 
-        for _v_iter in range(config.MAX_VERIFY_ITERATIONS):
-            if _sample is None:
-                print("  [!] No traffic sample, skipping verification.")
-                verified = True
-                break
+        verified, final_code = verify_domain_script(
+            vf_list,
+            code,
+            domain_traffic,
+            refine_domain_script,
+            _smali_context,
+        )
 
-            is_correct, feedback = _run_verification(vf_list, final_code, _sample)
-            if is_correct:
-                print(f"    [+] VERIFIED")
-                verified = True
-                break
-
-            print(f"    [!] FAILED: {feedback[:120]}...")
-            print(f"    [refine iter {_v_iter + 1}] Refining with smali context...")
-
-            try:
-                final_code = refine_domain_script(final_code, feedback, _smali_context)
-                print(f"    Refined: {len(final_code.splitlines())} lines.")
-            except Exception as exc:
-                print(f"    [!] Refine error: {exc}")
-                break
-
-        status = "VERIFIED" if verified else "UNVERIFIED (max iterations reached)"
+        status = "VERIFIED" if verified else "UNVERIFIED"
         print(f"  Status: {status}")
 
-        # Save ONE script per domain
+        # Publish only code that reproduced every captured signature. A failed
+        # run invalidates the marker but leaves the previous script untouched.
         out_file = out_dir / "update_vf.py"
-        out_file.write_text(final_code, encoding="utf-8")
-        print(f"  Saved: {out_file}")
+        if verified:
+            out_file.write_text(final_code, encoding="utf-8")
+            manifest_path = write_verification_manifest(
+                out_dir,
+                domain=domain,
+                vf_fields=vf_list,
+                verified=True,
+                source_path=config.HAR_FILE,
+            )
+            print(f"  Saved: {out_file}")
+            print(f"  Verification marker: {manifest_path}")
+        else:
+            write_verification_manifest(
+                out_dir,
+                domain=domain,
+                vf_fields=vf_list,
+                verified=False,
+                reason="Generated code did not reproduce every captured VF value.",
+                source_path=config.HAR_FILE,
+            )
+            failed_domains.append(domain)
+            print("  [!] Candidate was not published.")
 
-    print(f"\n[Stage 2 complete]  VF scripts -> {config.VF_DIR}")
+    if failed_domains:
+        names = ", ".join(sorted(set(failed_domains)))
+        raise RuntimeError(f"Stage 2 failed closed for domain(s): {names}")
+
+    print(f"\n[Stage 2 complete]  Verified VF scripts -> {config.VF_DIR}")
 
 
 # ---------------------------------------------------------------------------
@@ -269,6 +293,7 @@ def run_stage3() -> None:
         save_test_cases,
         append_test_case_log,
         clear_test_case_log,
+        require_verified_vf_scripts,
     )
     from testcase_construction.resp_collect import send_test_case
     from testcase_construction.resp_compare import (
@@ -276,6 +301,24 @@ def run_stage3() -> None:
         compare_response,
         save_results,
     )
+
+    # Fail closed before constructing or sending any test case. This also
+    # catches a newly added domain for which Stage 2 has never been run.
+    from tdg_construction.token_utils import domain_key
+    from tdg_construction.har_loader import load_har
+    from vf_inference.vf_identification import (
+        identify_dynamic_fields,
+        parse_har_entries,
+    )
+
+    preflight_entries = load_har(config.HAR_FILE)
+    preflight_traffic = parse_har_entries(preflight_entries)
+    if config.MANUAL_VFS:
+        required_domains = [domain_key(domain) for domain in config.MANUAL_VFS]
+    else:
+        required_domains = list(identify_dynamic_fields(preflight_traffic))
+    verified_scripts = require_verified_vf_scripts(required_domains)
+    print(f"[Stage 3 preflight] Verified VF scripts: {len(verified_scripts)}")
 
     tdg = TDG(config.TDG_PATH)
     har = HARTraffic(config.HAR_FILE)

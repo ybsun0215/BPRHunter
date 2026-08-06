@@ -7,10 +7,53 @@ from __future__ import annotations
 
 import json
 from typing import Optional
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, urlsplit
 from datetime import datetime, timezone
 
 from config import MIN_ALNUM_LENGTH, SKIP_FIELD_NAMES
+
+
+# ─── Domain helpers ──────────────────────────────────────
+
+_DEFAULT_PORTS = {"http": 80, "https": 443}
+
+
+def domain_key(value: str) -> str:
+    """Return one canonical, filesystem-safe key for a URL or Host value.
+
+    Host names are lower-cased and IDNA-normalised. Default HTTP(S) ports are
+    omitted; non-default ports use ``__port_<n>`` so VF directories are valid
+    on Windows as well as Linux.
+    """
+
+    raw = str(value or "").strip()
+    if not raw:
+        return "unknown"
+
+    has_scheme = "://" in raw
+    try:
+        parsed = urlsplit(raw if has_scheme else f"//{raw}")
+        host = parsed.hostname
+        port = parsed.port
+    except (TypeError, ValueError):
+        return "unknown"
+
+    if not host:
+        return "unknown"
+
+    host = host.rstrip(".").lower()
+    if ":" in host:
+        safe_host = "ipv6_" + host.replace(":", "_")
+    else:
+        try:
+            safe_host = host.encode("idna").decode("ascii")
+        except UnicodeError:
+            safe_host = host
+
+    scheme = parsed.scheme.lower() if has_scheme else ""
+    if port is not None and port != _DEFAULT_PORTS.get(scheme):
+        return f"{safe_host}__port_{port}"
+    return safe_host
 
 
 # ─── String helpers ───────────────────────────────────────
@@ -81,11 +124,15 @@ def ts_diff(ts_later: str, ts_earlier: str) -> float:
 # ─── HAR entry helpers ────────────────────────────────────
 
 def get_host(entry: dict) -> str:
-    """Extract the Host header value from a HAR entry."""
+    """Return the same canonical domain key used by Stages 2 and 3."""
+    url_key = domain_key(entry.get("request", {}).get("url", ""))
+    if url_key != "unknown":
+        return url_key
+
     for h in entry.get("request", {}).get("headers", []):
         if h.get("name", "").lower() == "host":
-            return h["value"]
-    return urlparse(entry.get("request", {}).get("url", "")).hostname or "unknown"
+            return domain_key(h.get("value", ""))
+    return "unknown"
 
 
 def extract_response_values(entry: dict) -> set:

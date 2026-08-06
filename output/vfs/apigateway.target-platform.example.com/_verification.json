@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "domain": "apigateway.target-platform.example.com",
+  "vf_fields": [
+    "x-demo-timestamp",
+    "x-demo-date",
+    "sign"
+  ],
+  "verified": true,
+  "script": "update_vf.py",
+  "script_sha256": "2c4c54e541750b4f0bb5dddf5356d26c2b3ba0af1e7272ecba4d912dd5fe2456",
+  "source_sha256": "9c61c5c299aa3318b369dd82bef8fa1a57c70dbea7b3d175191774464c3563e2",
+  "reason": ""
+}

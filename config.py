@@ -59,11 +59,11 @@ SKIP_FIELD_NAMES = {
 API_BASE_URL = "https://api.deepseek.com"
 
 
-API_KEY = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+API_KEY = os.getenv("BPRHUNTER_API_KEY", "xxx")
 
-MODEL = "xxx"
+MODEL = "deepseek-v4-pro"
 
-CODEGEN_MODEL = "xxx"
+CODEGEN_MODEL = "deepseek-v4-flash"
 
 LLM_TIMEOUT = 300
 

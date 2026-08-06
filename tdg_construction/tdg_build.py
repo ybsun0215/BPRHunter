@@ -11,7 +11,7 @@ from config import (
     MIN_ALNUM_LENGTH,
 )
 from .token_utils import (
-    alnum_len, bearer_strip, get_host,
+    alnum_len, bearer_strip, domain_key, get_host,
     extract_response_values, extract_request_fields,
 )
 
@@ -84,16 +84,36 @@ def make_api_id(method: str, url: str) -> str:
 # Loaders
 # ═════════════════════════════════════════════════════════
 
-def load_token_csv(path: str, token_type: str) -> tuple[dict, set]:
+TokenRef = tuple[str, str, str]
+
+
+def _load_token_catalog(
+    path: str,
+    token_type: str,
+) -> tuple[
+    dict[str, dict[str, set[str]]],
+    set[str],
+    dict[tuple[str, str], list[TokenRef]],
+    dict[TokenRef, dict[str, set[str]]],
+]:
     """
-    Load a token CSV (any of the three kinds).
+    Load one token CSV and resolve consumer aliases to canonical identities.
+
+    Auth tokens are canonicalised to the host and field that issued them.
+    Thus the same value consumed by several domains remains one TDG node.
 
     Returns:
-        token_map : {host: {field_name: set(values)}}
-        token_ids : set of node IDs  (host::field_name)
+        token_map: canonical_host -> canonical_field -> values
+        token_ids: canonical node IDs
+        aliases: (consumer_host, request_field_lower) -> token references
+        consumers: token reference -> host -> request fields
     """
     token_map: dict[str, dict[str, set]] = defaultdict(lambda: defaultdict(set))
     token_ids: set[str] = set()
+    aliases: dict[tuple[str, str], list[TokenRef]] = defaultdict(list)
+    consumers: dict[TokenRef, dict[str, set[str]]] = defaultdict(
+        lambda: defaultdict(set)
+    )
 
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -106,38 +126,94 @@ def load_token_csv(path: str, token_type: str) -> tuple[dict, set]:
             }[token_type]
 
             for row in reader:
-                host  = row["Host"]
-                field = row[field_col]
-                tid   = make_token_id(host, field)
+                consumer_host = domain_key(row.get("Host", ""))
+                consumer_field = row.get(field_col, "").strip()
+                if consumer_host == "unknown" or not consumer_field:
+                    continue
+
+                if token_type == "auth":
+                    issuer_source = (
+                        row.get("Issuer Host")
+                        or row.get("Source Response URL")
+                        or row.get("Host", "")
+                    )
+                    canonical_host = domain_key(issuer_source)
+                    source_field = row.get("Source Response Key", "").strip()
+                    canonical_field = (
+                        consumer_field
+                        if not source_field or source_field == "__raw__"
+                        else source_field
+                    )
+                else:
+                    canonical_host = consumer_host
+                    canonical_field = consumer_field
+
+                ref: TokenRef = (
+                    canonical_host,
+                    canonical_field,
+                    f"{token_type}_token",
+                )
+                tid = make_token_id(canonical_host, canonical_field)
                 token_ids.add(tid)
+                consumers[ref][consumer_host].add(consumer_field)
+
+                for alias_key in (
+                    (consumer_host, consumer_field.lower()),
+                    (canonical_host, canonical_field.lower()),
+                ):
+                    if ref not in aliases[alias_key]:
+                        aliases[alias_key].append(ref)
 
                 # Load values: prefer "All Values (JSON)" if present; fall back to "Sample Value"
                 all_json = row.get("All Values (JSON)", "")
                 if all_json:
-                    for v in json.loads(all_json):
+                    try:
+                        loaded_values = json.loads(all_json)
+                    except (json.JSONDecodeError, TypeError):
+                        loaded_values = []
+                    if not isinstance(loaded_values, list):
+                        loaded_values = []
+                    for v in loaded_values:
                         for c in bearer_strip(v):
                             if alnum_len(c) >= MIN_ALNUM_LENGTH:
-                                token_map[host][field].add(c)
+                                token_map[canonical_host][canonical_field].add(c)
                 else:
                     for c in bearer_strip(row.get("Sample Value", "")):
                         if alnum_len(c) >= MIN_ALNUM_LENGTH:
-                            token_map[host][field].add(c)
+                            token_map[canonical_host][canonical_field].add(c)
 
     except FileNotFoundError:
         print(f"  Warning: {path} not found, skipping")
 
+    return token_map, token_ids, aliases, consumers
+
+
+def load_token_csv(path: str, token_type: str) -> tuple[dict, set]:
+    """Backward-compatible public loader returning the map and IDs only."""
+    token_map, token_ids, _, _ = _load_token_catalog(path, token_type)
     return token_map, token_ids
 
-def load_generate_edges_from_csv() -> set[tuple[str, str, str]]:
+
+def load_generate_edges_from_csv(
+    aliases: dict[tuple[str, str], list[TokenRef]] | None = None,
+) -> set[tuple[str, str, str]]:
     gen_edges: set[tuple[str, str, str]] = set()
+    aliases = aliases or {}
+
+    def resolve(host: str, field: str, expected_type: str) -> str:
+        key = (domain_key(host), field.lower())
+        for ref in aliases.get(key, []):
+            if ref[2] == expected_type:
+                return make_token_id(ref[0], ref[1])
+        return make_token_id(domain_key(host), field)
 
     # refresh token --> auth token
     try:
         with open(REFRESH_TOKEN_CSV, "r", encoding="utf-8") as f:
             for row in csv.DictReader(f):
                 host    = row["Host"]
-                src_tid = make_token_id(host, row["Refresh Token Field"])
-                dst_tid = make_token_id(host, row["Auth Token Field"])
+                src_tid = resolve(host, row["Refresh Token Field"], "refresh_token")
+                dst_tid = resolve(host, row["Auth Token Field"], "auth_token")
                 gen_edges.add((src_tid, "Generate", dst_tid))
     except FileNotFoundError:
         print(f"  Warning: {REFRESH_TOKEN_CSV} not found")
@@ -147,8 +223,8 @@ def load_generate_edges_from_csv() -> set[tuple[str, str, str]]:
         with open(EXCHANGE_TOKEN_CSV, "r", encoding="utf-8") as f:
             for row in csv.DictReader(f):
                 host    = row["Host"]
-                src_tid = make_token_id(host, row["Exchange Token Field"])
-                dst_tid = make_token_id(host, row["Auth Token Field"])
+                src_tid = resolve(host, row["Exchange Token Field"], "exchange_token")
+                dst_tid = resolve(host, row["Auth Token Field"], "auth_token")
                 gen_edges.add((src_tid, "Generate", dst_tid))
     except FileNotFoundError:
         print(f"  Warning: {EXCHANGE_TOKEN_CSV} not found")
@@ -163,64 +239,70 @@ def build_tdg(entries: list) -> dict:
 
     # ── Step 1: Load all identified tokens ───────────────────────────────────
     print("Loading identified tokens...")
-    auth_map,     auth_ids     = load_token_csv(AUTH_TOKEN_CSV,     "auth")
-    refresh_map,  refresh_ids  = load_token_csv(REFRESH_TOKEN_CSV,  "refresh")
-    exchange_map, exchange_ids = load_token_csv(EXCHANGE_TOKEN_CSV, "exchange")
+    auth_catalog = _load_token_catalog(AUTH_TOKEN_CSV, "auth")
+    refresh_catalog = _load_token_catalog(REFRESH_TOKEN_CSV, "refresh")
+    exchange_catalog = _load_token_catalog(EXCHANGE_TOKEN_CSV, "exchange")
+
+    auth_map, auth_ids, _, _ = auth_catalog
+    refresh_map, refresh_ids, _, _ = refresh_catalog
+    exchange_map, exchange_ids, _, _ = exchange_catalog
 
     print(f"  Auth tokens:     {len(auth_ids)}")
     print(f"  Refresh tokens:  {len(refresh_ids)}")
     print(f"  Exchange tokens: {len(exchange_ids)}")
 
-    # Build reverse index: bare value  -->  [(host, field, token_type), ...]
-    # A single value may match multiple tokens (e.g. same JWT used across hosts),
-    # so we store a list and resolve by host preference at lookup time.
-    value_to_token: dict[str, list[tuple[str, str, str]]] = {}
+    catalogs = [auth_catalog, refresh_catalog, exchange_catalog]
 
-    for host, fields in auth_map.items():
-        for field, values in fields.items():
-            for v in values:
-                value_to_token.setdefault(v, []).append((host, field, "auth_token"))
+    alias_index: dict[tuple[str, str], list[TokenRef]] = defaultdict(list)
+    consumer_index: dict[TokenRef, dict[str, set[str]]] = defaultdict(
+        lambda: defaultdict(set)
+    )
+    for _, _, aliases, consumers in catalogs:
+        for alias_key, refs in aliases.items():
+            for ref in refs:
+                if ref not in alias_index[alias_key]:
+                    alias_index[alias_key].append(ref)
+        for ref, hosts in consumers.items():
+            for consumer_host, fields in hosts.items():
+                consumer_index[ref][consumer_host].update(fields)
 
-    for host, fields in refresh_map.items():
-        for field, values in fields.items():
-            for v in values:
-                value_to_token.setdefault(v, []).append((host, field, "refresh_token"))
+    # Bare value -> canonical token references. Values may overlap, so the
+    # request/response field alias is used to disambiguate first.
+    value_to_token: dict[str, list[TokenRef]] = defaultdict(list)
+    for token_map, _, _, consumers in catalogs:
+        token_type_by_identity = {
+            (ref[0], ref[1]): ref[2] for ref in consumers
+        }
+        for host, fields in token_map.items():
+            for field, values in fields.items():
+                token_type = token_type_by_identity.get((host, field))
+                if token_type is None:
+                    continue
+                ref = (host, field, token_type)
+                for value in values:
+                    if ref not in value_to_token[value]:
+                        value_to_token[value].append(ref)
 
-    for host, fields in exchange_map.items():
-        for field, values in fields.items():
-            for v in values:
-                value_to_token.setdefault(v, []).append((host, field, "exchange_token"))
-
-    # Build field-name-based index for ALL token types.
-    # Key: (host, field_name_lower)  →  (host, field, token_type)
-    field_to_token: dict[tuple[str, str], tuple[str, str, str]] = {}
-    for host, fields in auth_map.items():
-        for field in fields:
-            field_to_token[(host, field.lower())] = (host, field, "auth_token")
-    for host, fields in refresh_map.items():
-        for field in fields:
-            field_to_token[(host, field.lower())] = (host, field, "refresh_token")
-    for host, fields in exchange_map.items():
-        for field in fields:
-            field_to_token[(host, field.lower())] = (host, field, "exchange_token")
-
-    def _lookup_token(host: str, candi: str, field_name: str = "") -> tuple[str, str, str] | None:
+    def _lookup_token(host: str, candi: str, field_name: str = "") -> TokenRef | None:
         """Resolve a candidate value to a token identity.
 
-        1. Exact value match — if multiple tokens share the value (e.g. same
-           JWT across hosts), prefer the one whose host matches the request host.
-        2. Field-name-based fallback for truncated values.
+        Consumer aliases take precedence, which preserves one issuer-owned
+        identity even when the same auth token is sent to another domain.
         """
+        alias_hits = (
+            alias_index.get((host, field_name.lower()), []) if field_name else []
+        )
         hits = value_to_token.get(candi, [])
         if hits:
-            # Prefer token whose host matches the request host
+            for alias_hit in alias_hits:
+                if alias_hit in hits:
+                    return alias_hit
             for hit in hits:
                 if hit[0] == host:
                     return hit
-            # Fallback: first match
-            return hits[0]
-        if field_name:
-            return field_to_token.get((host, field_name.lower()))
+            return sorted(hits)[0]
+        if alias_hits:
+            return sorted(alias_hits)[0]
         return None
 
     # ── Step 2: Declare nodes ────────────────────────────────────────────────
@@ -230,12 +312,25 @@ def build_tdg(entries: list) -> dict:
     def add_token_node(host, field, token_type):
         nid = make_token_id(host, field)
         if nid not in nodes:
+            ref: TokenRef = (host, field, token_type)
+            consumers = consumer_index.get(ref, {})
+            all_consumer_fields = sorted(
+                {name for names in consumers.values() for name in names}
+            )
+            display_field = all_consumer_fields[0] if all_consumer_fields else field
             nodes[nid] = {
-                "id":    nid,
-                "type":  token_type,
-                "host":  host,
-                "field": field,
-                "label": field,
+                "id":              nid,
+                "type":            token_type,
+                "host":            host,
+                "field":           display_field,
+                "issuer_host":     host,
+                "issuer_field":    field,
+                "consumer_hosts":  sorted(consumers),
+                "consumer_fields": {
+                    consumer_host: sorted(fields)
+                    for consumer_host, fields in sorted(consumers.items())
+                },
+                "label":           display_field,
             }
         return nid
 
@@ -266,6 +361,8 @@ def build_tdg(entries: list) -> dict:
     # ── Step 3: Scan traffic to build edges ──────────────────────────────────
     # edges: set of (src_id, edge_type, dst_id)
     edges: set[tuple[str, str, str]] = set()
+    usedin_fields: dict[tuple[str, str], set[str]] = defaultdict(set)
+    issue_fields: dict[tuple[str, str], set[str]] = defaultdict(set)
 
     print(f"Scanning {len(entries)} traffic entries to build edges...")
 
@@ -288,6 +385,7 @@ def build_tdg(entries: list) -> dict:
 
             # UsedIn edge: Token --> API
             edges.add((tid, "UsedIn", api_id))
+            usedin_fields[(tid, api_id)].add(fname)
             req_token_ids.add(tid)
 
         # Collect which token fields appear in this response
@@ -303,6 +401,7 @@ def build_tdg(entries: list) -> dict:
 
             # Issue edge: API --> Token
             edges.add((api_id, "Issue", tid))
+            issue_fields[(api_id, tid)].add(resp_fname)
             resp_token_ids.add(tid)
 
             for t1 in req_token_ids:
@@ -310,42 +409,18 @@ def build_tdg(entries: list) -> dict:
                     if t1 != t2:
                         edges.add((t1, "Generate", t2))
 
-    print("Validating UsedIn edges (token host must appear in API URL)...")
-    validated_edges: set[tuple[str, str, str]] = set()
-    fixed_count = 0
-    removed_count = 0
+    print("Preserving cross-domain UsedIn edges via issuer/consumer aliases...")
 
-    for src, etype, dst in edges:
-        if etype != "UsedIn":
-            validated_edges.add((src, etype, dst))
-            continue
-
-        token_host = src.split("::")[0]
-        if token_host in dst:
-            # Valid: token host appears in API URL
-            validated_edges.add((src, etype, dst))
-            continue
-
-        # Cross-host edge — try to find a matching token for the correct host
-        token_field = src.split("::")[-1]
-        reassigned = False
-        for nid, node in nodes.items():
-            if node.get("field") == token_field and node["host"] in dst:
-                validated_edges.add((nid, "UsedIn", dst))
-                fixed_count += 1
-                reassigned = True
-                break
-        if not reassigned:
-            # No better token found — remove the edge
-            removed_count += 1
-
-    print(f"  Fixed:   {fixed_count} cross-host UsedIn edges reassigned")
-    print(f"  Removed: {removed_count} unresolvable cross-host edges")
-    edges = validated_edges
-
-    csv_gen_edges = load_generate_edges_from_csv()
+    raw_csv_gen_edges = load_generate_edges_from_csv(alias_index)
+    csv_gen_edges = {
+        edge for edge in raw_csv_gen_edges
+        if edge[0] in nodes and edge[2] in nodes
+    }
     edges |= csv_gen_edges
     print(f"  CSV-derived Generate edges added: {len(csv_gen_edges)}")
+    skipped_gen_edges = len(raw_csv_gen_edges) - len(csv_gen_edges)
+    if skipped_gen_edges:
+        print(f"  Skipped Generate edges with missing nodes: {skipped_gen_edges}")
 
     print(f"Graph summary:")
     print(f"  Nodes: {len(nodes)}  ({sum(1 for n in nodes.values() if n['type']=='api')} API, "
@@ -356,13 +431,22 @@ def build_tdg(entries: list) -> dict:
           f"Generate={sum(1 for e in edges if e[1]=='Generate')})")
 
     # ── Step 4: Assemble TDG dict ────────────────────────────────────────────
-    tdg = {
-        "nodes": list(nodes.values()),
-        "edges": [
-            {"src": src, "type": etype, "dst": dst}
-            for src, etype, dst in sorted(edges)
-        ],
-    }
+    edge_records = []
+    for src, etype, dst in sorted(edges):
+        record = {"src": src, "type": etype, "dst": dst}
+        if etype == "UsedIn":
+            fields = sorted(usedin_fields.get((src, dst), set()))
+        elif etype == "Issue":
+            fields = sorted(issue_fields.get((src, dst), set()))
+        else:
+            fields = []
+        if fields:
+            record["field"] = fields[0]
+            if len(fields) > 1:
+                record["fields"] = fields
+        edge_records.append(record)
+
+    tdg = {"nodes": list(nodes.values()), "edges": edge_records}
 
     return tdg
 
@@ -384,8 +468,12 @@ def write_tdg(tdg: dict):
 
     # edges CSV
     with open(TDG_EDGES_CSV, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["src", "type", "dst"],
-                                quoting=csv.QUOTE_ALL)
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["src", "type", "dst", "field", "fields"],
+            extrasaction="ignore",
+            quoting=csv.QUOTE_ALL,
+        )
         writer.writeheader()
         writer.writerows(tdg["edges"])
 

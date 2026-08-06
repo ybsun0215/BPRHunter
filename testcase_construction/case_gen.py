@@ -6,11 +6,13 @@ import importlib.util
 import os
 from dataclasses import dataclass
 from typing import Any, Generator, Optional
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit, urlunsplit
 
 import requests
 
 import config
+from tdg_construction.token_utils import domain_key
+from vf_inference.verification import validate_verified_script
 
 
 @dataclass
@@ -34,15 +36,44 @@ class TDG:
         self.nodes: dict[str, dict] = {n["id"]: n for n in data["nodes"]}
 
         self.edges_by_type: dict[str, list[tuple[str, str]]] = {}
+        self.edge_records_by_type: dict[str, list[dict]] = {}
         for e in data["edges"]:
             rel = e["type"]
             self.edges_by_type.setdefault(rel, []).append((e["src"], e["dst"]))
+            self.edge_records_by_type.setdefault(rel, []).append(e)
 
     def get_auth_tokens(self) -> list[str]:
         return [nid for nid, n in self.nodes.items() if n["type"] == "auth_token"]
 
     def get_usedin_apis(self, token_id: str) -> list[str]:
         return [dst for src, dst in self.edges_by_type.get("UsedIn", []) if src == token_id]
+
+    def _consumer_field_for_api(self, token_id: str, api_id: str) -> str:
+        node = self.nodes.get(token_id, {})
+        api_url = self.nodes.get(api_id, {}).get("url", "")
+        consumer_host = domain_key(api_url)
+        consumer_fields = node.get("consumer_fields", {})
+        fields = consumer_fields.get(consumer_host, []) if isinstance(consumer_fields, dict) else []
+        if fields:
+            return str(fields[0])
+        return str(node.get("field", token_id.split("::")[-1]))
+
+    def get_usedin_bindings(self, token_id: str) -> list[tuple[str, str]]:
+        """Return each consumer API together with its request field alias."""
+        bindings = []
+        for edge in self.edge_records_by_type.get("UsedIn", []):
+            if edge.get("src") != token_id:
+                continue
+            api_id = edge["dst"]
+            field = edge.get("field") or self._consumer_field_for_api(token_id, api_id)
+            bindings.append((api_id, str(field)))
+        return bindings
+
+    def get_usedin_field(self, token_id: str, api_id: str) -> str | None:
+        for bound_api, field in self.get_usedin_bindings(token_id):
+            if bound_api == api_id:
+                return field
+        return None
 
     def get_generate_parents(self, token_id: str) -> list[str]:
         return [src for src, dst in self.edges_by_type.get("Generate", []) if dst == token_id]
@@ -52,6 +83,17 @@ class TDG:
             if dst == token_id:
                 return src
         return None
+
+    def get_issue_field(self, token_id: str, api_id: str | None = None) -> str:
+        for edge in self.edge_records_by_type.get("Issue", []):
+            if edge.get("dst") != token_id:
+                continue
+            if api_id is not None and edge.get("src") != api_id:
+                continue
+            if edge.get("field"):
+                return str(edge["field"])
+        node = self.nodes.get(token_id, {})
+        return str(node.get("issuer_field") or node.get("field") or token_id.split("::")[-1])
 
     def retrieve_gen_chains(self, auth_token_id: str) -> list[list[str]]:
         chains: list[list[str]] = []
@@ -240,26 +282,47 @@ def replace_token_in_request(request: dict, token_field: str, new_value: str) ->
 # ---------------------------------------------------------------------------
 
 def _get_hostname(url: str) -> str:
-    try:
-        return urlparse(url).hostname or ""
-    except Exception:
-        return ""
+    key = domain_key(url)
+    return "" if key == "unknown" else key
 
 
 def find_vf_script(hostname: str) -> str | None:
-    """Locate the unified VF update script for a host (one script per domain)."""
+    """Locate a Stage-2-verified VF updater for one canonical domain."""
     host_dir = os.path.join(config.VF_DIR, hostname)
     if not os.path.isdir(host_dir):
         return None
-    # Prefer the canonical name from Stage 2
+
     canonical = os.path.join(host_dir, "update_vf.py")
-    if os.path.isfile(canonical):
-        return canonical
-    # Fallback: any .py file in the directory
-    for fname in os.listdir(host_dir):
-        if fname.endswith(".py"):
-            return os.path.join(host_dir, fname)
-    return None
+    if not os.path.isfile(canonical):
+        raise RuntimeError(
+            f"Stage 2 output exists for {hostname}, but update_vf.py is missing"
+        )
+
+    valid, reason = validate_verified_script(
+        canonical,
+        expected_domain=hostname,
+        expected_source_path=config.HAR_FILE,
+    )
+    if not valid:
+        raise RuntimeError(f"Refusing unverified VF script for {hostname}: {reason}")
+    return canonical
+
+
+def require_verified_vf_scripts(domains: list[str]) -> dict[str, str]:
+    """Fail unless every VF-bearing domain has a verified Stage 2 artifact."""
+    scripts: dict[str, str] = {}
+    missing: list[str] = []
+    for domain in sorted(set(domains)):
+        script = find_vf_script(domain)
+        if script is None:
+            missing.append(domain)
+        else:
+            scripts[domain] = script
+    if missing:
+        raise RuntimeError(
+            "Missing verified VF script for domain(s): " + ", ".join(missing)
+        )
+    return scripts
 
 
 def _har_headers_to_dict(headers):
@@ -325,48 +388,89 @@ def apply_vf_update(request: dict) -> dict:
     if not script_path:
         return request
 
+    # Build a VF-format request from the HAR-format request
+    vf_request = copy.deepcopy(request)
+
+    # ── Convert headers: HAR list → dict ──
+    vf_request["headers"] = _har_headers_to_dict(vf_request.get("headers"))
+
+    # ── Convert queryString: HAR list → query dict ──
+    vf_request["query"] = _har_query_to_dict(vf_request.get("queryString", []))
+
+    # ── Extract the exact captured body from postData ──
+    if "body" not in vf_request:
+        vf_request["body"] = vf_request.get("postData", {}).get("text", "")
+
+    # ── Extract path from URL ──
+    url = vf_request.get("url", "")
     try:
-        # Build a VF-format request from the HAR-format request
-        vf_request = copy.deepcopy(request)
+        parsed = urlparse(url)
+        vf_request["path"] = parsed.path or "/"
+    except Exception:
+        vf_request["path"] = "/"
 
-        # ── Convert headers: HAR list → dict ──
-        vf_request["headers"] = _har_headers_to_dict(vf_request.get("headers"))
+    _strip_ephemeral_fields(vf_request)
 
-        # ── Convert queryString: HAR list → query dict ──
-        vf_request["query"] = _har_query_to_dict(vf_request.get("queryString", []))
-
-        # ── Extract body from postData ──
-        if "body" not in vf_request:
-            vf_request["body"] = vf_request.get("postData", {}).get("text", "")
-
-        # ── Extract path from URL ──
-        url = vf_request.get("url", "")
-        try:
-            parsed = urlparse(url)
-            vf_request["path"] = parsed.path or "/"
-        except Exception:
-            vf_request["path"] = "/"
-
-        _strip_ephemeral_fields(vf_request)
-
+    try:
         spec = importlib.util.spec_from_file_location("vf_updater", script_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("could not create a Python module specification")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        if hasattr(module, "update_vf"):
-            updated = module.update_vf(vf_request)
-            if isinstance(updated, dict):
-                # ── Convert headers back: VF dict → HAR list ──
-                updated["headers"] = _dict_headers_to_har(updated.get("headers"))
-                return updated
-    except Exception as e:
-        print(f"[WARN] VF update failed for {hostname}: {e}")
+        if not hasattr(module, "update_vf"):
+            raise RuntimeError("script does not define update_vf(request)")
+        updated = module.update_vf(vf_request)
+        if not isinstance(updated, dict):
+            raise RuntimeError("update_vf(request) did not return a dictionary")
+    except Exception as exc:
+        raise RuntimeError(f"VF update failed for {hostname}: {exc}") from exc
 
-    return request
+    # ── Convert the VF representation back to HAR ──
+    updated["headers"] = _dict_headers_to_har(updated.get("headers"))
+    if isinstance(updated.get("query"), dict):
+        updated["queryString"] = [
+            {"name": k, "value": str(v)} for k, v in updated["query"].items()
+        ]
+    if isinstance(updated.get("body"), str):
+        updated.setdefault("postData", {})["text"] = updated["body"]
+    return updated
 
 
 # ---------------------------------------------------------------------------
 # HTTP sender (used during chain execution only)
 # ---------------------------------------------------------------------------
+
+def prepare_request_target(request: dict) -> tuple[str, list[tuple[str, str]] | None]:
+    """Return one URL/params representation for replaying a HAR request.
+
+    HAR stores query parameters twice: in ``request.url`` and in
+    ``request.queryString``.  Stage 3 mutates the structured ``queryString``
+    values, so it is authoritative whenever it is populated.  Remove the
+    stale query component from the URL in that case; otherwise ``requests``
+    would append the params and send duplicate keys.
+    """
+    url = str(request.get("url", ""))
+    query_string = request.get("queryString")
+
+    if isinstance(query_string, dict):
+        params = [(str(name), str(value)) for name, value in query_string.items()]
+    elif isinstance(query_string, list):
+        params = [
+            (str(param["name"]), str(param.get("value", "")))
+            for param in query_string
+            if isinstance(param, dict) and "name" in param
+        ]
+    else:
+        params = []
+
+    if not params:
+        return url, None
+
+    parsed = urlsplit(url)
+    base_url = urlunsplit(
+        (parsed.scheme, parsed.netloc, parsed.path, "", parsed.fragment)
+    )
+    return base_url, params
 
 def send_har_request(request: dict) -> requests.Response | None:
     # ── Demo mode: return original HAR response as mock ──
@@ -378,7 +482,7 @@ def send_har_request(request: dict) -> requests.Response | None:
     request = apply_vf_update(copy.deepcopy(request))
 
     method = request.get("method", "GET").upper()
-    url = request.get("url", "")
+    url, params = prepare_request_target(request)
 
     skip_headers = {"content-length", "transfer-encoding"}
     headers = {
@@ -386,8 +490,6 @@ def send_har_request(request: dict) -> requests.Response | None:
         for h in request.get("headers", [])
         if h["name"].lower() not in skip_headers and not h["name"].startswith(":")
     }
-
-    params = {p["name"]: p["value"] for p in request.get("queryString", [])}
 
     body = None
     post_data = request.get("postData", {})
@@ -421,11 +523,9 @@ def execute_chain(chain: list[str], tdg: TDG, har: HARTraffic) -> str | None:
         return None
 
     root_token_id = chain[0]
-    root_node = tdg.nodes.get(root_token_id, {})
-    root_field = root_node.get("field", root_token_id.split("::")[-1])
 
     current_value = None
-    for api_id in tdg.get_usedin_apis(root_token_id):
+    for api_id, root_field in tdg.get_usedin_bindings(root_token_id):
         req = har.find_request(api_id)
         if req:
             current_value = get_token_value_from_request(req, root_field)
@@ -439,13 +539,11 @@ def execute_chain(chain: list[str], tdg: TDG, har: HARTraffic) -> str | None:
     current_token_id = root_token_id
 
     for next_token_id in chain[1:]:
-        next_node = tdg.nodes.get(next_token_id, {})
-        next_field = next_node.get("field", next_token_id.split("::")[-1])
-
         issue_api_id = tdg.get_issue_api(next_token_id)
         if not issue_api_id:
             print(f"[WARN] No Issue API for token: {next_token_id}")
             return None
+        next_field = tdg.get_issue_field(next_token_id, issue_api_id)
 
         issue_request = har.find_request(issue_api_id)
         if not issue_request:
@@ -453,7 +551,10 @@ def execute_chain(chain: list[str], tdg: TDG, har: HARTraffic) -> str | None:
             return None
 
         current_node = tdg.nodes.get(current_token_id, {})
-        current_field = current_node.get("field", current_token_id.split("::")[-1])
+        current_field = (
+            tdg.get_usedin_field(current_token_id, issue_api_id)
+            or current_node.get("field", current_token_id.split("::")[-1])
+        )
         issue_request = replace_token_in_request(issue_request, current_field, current_value)
         issue_request = apply_vf_update(issue_request)
 
@@ -498,17 +599,20 @@ def generate_test_cases(
 
     for token_id in auth_tokens:
         token_node = tdg.nodes[token_id]
-        token_field = token_node.get("field", token_id.split("::")[-1])
+        default_token_field = token_node.get("field", token_id.split("::")[-1])
 
-        usedin_apis = tdg.get_usedin_apis(token_id)
-        print(f"\n[INFO] Token: {token_id}  field={token_field}  UsedIn APIs: {len(usedin_apis)}")
+        usedin_bindings = tdg.get_usedin_bindings(token_id)
+        print(
+            f"\n[INFO] Token: {token_id}  field={default_token_field}  "
+            f"UsedIn APIs: {len(usedin_bindings)}"
+        )
 
-        if not usedin_apis:
+        if not usedin_bindings:
             print(f"[SKIP] No UsedIn APIs.")
             continue
 
         # Step 1: Base test cases
-        for api_id in usedin_apis:
+        for api_id, token_field in usedin_bindings:
             request = har.find_request(api_id)
             if request is None:
                 print(f"[SKIP] No HAR entry for: {api_id}")
@@ -539,7 +643,7 @@ def generate_test_cases(
                     print(f"  [SKIP] Chain yielded no new token value.")
                     continue
 
-            for api_id in usedin_apis:
+            for api_id, token_field in usedin_bindings:
                 request = har.find_request(api_id)
                 if request is None:
                     continue

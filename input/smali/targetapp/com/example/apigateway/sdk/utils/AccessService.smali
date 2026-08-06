@@ -3,17 +3,17 @@
 .source "AccessService.smali"
 
 
-.field private static final VF_SIGN_HEADER:Ljava/lang/String; = "v587sign"
+.field private static final VF_SIGN_HEADER:Ljava/lang/String; = "sign"
 
-.field private static final DATE_HEADER:Ljava/lang/String; = "x-sdk-date"
+.field private static final DATE_HEADER:Ljava/lang/String; = "x-demo-date"
 
-.field private static final TIMESTAMP_HEADER:Ljava/lang/String; = "x-ca-timestamp"
+.field private static final TIMESTAMP_HEADER:Ljava/lang/String; = "x-demo-timestamp"
 
 
 .method public static signRequest(Lokhttp3/Request$Builder;)Lokhttp3/Request$Builder;
     .locals 4
 
-    const-string v0, "x-sdk-date"
+    const-string v0, "x-demo-date"
 
     invoke-static {}, Ljava/util/TimeZone;->getTimeZone(Ljava/lang/String;)Ljava/util/TimeZone;
 
@@ -41,7 +41,7 @@
 
     invoke-virtual {p0, v0, v1}, Lokhttp3/Request$Builder;->addHeader(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
 
-    const-string v0, "x-ca-timestamp"
+    const-string v0, "x-demo-timestamp"
 
     invoke-static {}, Ljava/lang/System;->currentTimeMillis()J
 
@@ -53,9 +53,9 @@
 
     invoke-virtual {p0, v0, v1}, Lokhttp3/Request$Builder;->addHeader(Ljava/lang/String;Ljava/lang/String;)Lokhttp3/Request$Builder;
 
-    const-string v0, "v587sign"
+    const-string v0, "sign"
 
-    invoke-static {p0}, Lcom/example/sdk/util/SignUtils;->computeV587sign(Ljava/util/Map;)Ljava/lang/String;
+    invoke-static {p0}, Lcom/example/sdk/util/SignUtils;->computeSign(Ljava/util/Map;)Ljava/lang/String;
 
     move-result-object v1
 

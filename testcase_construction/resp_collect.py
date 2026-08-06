@@ -20,7 +20,7 @@ import copy
 import requests
 
 import config
-from .case_gen import TestCase, apply_vf_update
+from .case_gen import TestCase, apply_vf_update, prepare_request_target
 from ._demo import mock_response_dict
 
 
@@ -38,7 +38,7 @@ def send_request(request: dict) -> tuple[dict, str]:
         return mock_response_dict(request)
 
     method = request.get("method", "GET").upper()
-    url = request.get("url", "")
+    url, params = prepare_request_target(request)
 
     skip_headers = {"content-length", "transfer-encoding"}
     headers = {
@@ -46,8 +46,6 @@ def send_request(request: dict) -> tuple[dict, str]:
         for h in request.get("headers", [])
         if h["name"].lower() not in skip_headers and not h["name"].startswith(":")
     }
-
-    params = {p["name"]: p["value"] for p in request.get("queryString", [])}
 
     body = None
     post_data = request.get("postData", {})

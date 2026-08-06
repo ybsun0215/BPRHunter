@@ -26,6 +26,10 @@ from the code to infer the generation logic of the target field.
 @Instructions:
 1. Analyze the current Smali code context and identify which parts of
    the target field's generation logic remain unresolved.
+   The source_functions list is priority ordered. Always begin with item 0.
+   If it has a direct_callee and item 1 contains that method body, treat that
+   caller-to-callee path as authoritative. Do not switch to another signer
+   merely because it looks more feature-complete or complex.
 2. Based on the context, infer the next action to perform:
    - If further details of a function implementation are needed, use
      search_function(file_path, function_name).
@@ -168,7 +172,7 @@ def _build_code_gen_prompt(
         "- Ephemeral VFs (timestamp/date): generate ONLY if missing from headers; keep existing values",
         "- Signature VFs: ALWAYS recompute from current request state",
         "- Body: None/''→b'', str→.encode(), dict→json.dumps().encode()",
-        "- Content hash: if 'x-sdk-content-sha256' in headers, USE it; else SHA256(body)",
+        "- Content hash: if 'x-demo-content-sha256' in headers, USE it; else SHA256(body)",
         "- Use request.get('method','GET'), .get('path','/'), .get('headers',{}), .get('query',{})",
         "- Credentials: ACCESS_KEY='PLACEHOLDER_ACCESS', SECRET_KEY='PLACEHOLDER_SECRET'",
         "- Imports: hashlib, hmac, json, datetime, uuid, urllib.parse only",

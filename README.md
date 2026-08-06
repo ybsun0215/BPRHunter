@@ -26,8 +26,26 @@ BPRHunter runs as a three-stage pipeline. Each stage reads its inputs from disk,
 | Stage | Input | Output |
 |---|---|---|
 | TDG Construction | HAR traffic | `auth_tokens.csv`, `refresh_tokens.csv`, `exchange_tokens.csv`, `tdg.json` |
-| VF Logic Inference | HAR traffic, smali bytecode | `output/vfs/<domain>/update_vf.py`, `_chat_histories.json` |
+| VF Logic Inference | HAR traffic, smali bytecode | `output/vfs/<domain>/update_vf.py`, `_verification.json`, `_chat_histories.json` |
 | BPR Detection | `tdg.json`, HAR traffic, VF scripts | `output/testcases/<token>.json`, `output/results/<token>.json` |
+
+---
+
+## 📁 Input
+
+`input/traffic/`: Captured HTTP traffic in HAR format.
+
+`input/smali/`: Decompiled Smali code used to infer dynamic verification-field generation logic.
+
+## 📁 Output
+
+`output/tdg/`: Identified tokens and the generated Token Dependency Graph.
+
+`output/vfs/`: Inferred, generated, and verified dynamic verification-field updater scripts, grouped by domain.
+
+`output/testcases/`: Generated test cases and request-execution logs.
+
+`output/results/`: Final response-comparison and BPR vulnerability-detection results.
 
 ---
 
@@ -46,8 +64,12 @@ pip install -r requirements.txt
 
 ### ⚙️ Configure
 
-Set your API key, then review `config.py`.
+Set your API key through the environment, then review `config.py`.
 Recently, we found that DeepSeek appears to offer better cost-effectiveness, so it can be used as the base model.
+
+```bash
+export BPRHUNTER_API_KEY="your-api-key"
+```
 
 ```python
 HAR_FILE      = "input/traffic/demo.har"   # path to your HAR capture
@@ -69,16 +91,29 @@ python main.py --stages 1 2   # TDG + VF inference
 python main.py --stages 3     # BPR detection (needs prior Stage 1 & 2 output)
 ```
 
+Stage 2 groups traffic by canonical domain and infers one VF updater per
+domain, even when different domains use a field with the same name (for
+example, `sign`). Non-default ports are retained in Windows-safe directory
+keys such as `api.example.com__port_8443`.
+
+Before publishing an updater, Stage 2 must reproduce every captured
+non-ephemeral VF value for that domain. The resulting `_verification.json`
+binds the verified status to the exact SHA-256 hashes of `update_vf.py` and
+the HAR input used for verification.
+Stage 3 fails closed if the marker is missing, verification failed, or the
+script changed afterward.
+
 ---
 
 ## ⚠️ Demo
 
-The HAR traffic and smali bytecode included in this repository have been anonymized:
+The demo HAR traffic and Smali bytecode are intended to be anonymized:
 
 - 🌐 All hostnames use the placeholder `apigateway.target-platform.example.com`.
 - 📦 All Java package names use the placeholder `com.example.*`.
 - 🔑 All credentials use the placeholder values `PLACEHOLDER_ACCESS` / `PLACEHOLDER_SECRET`.
-- ✅ No real API keys, secrets, or identifying information are present.
+- 🔐 Use `BPRHUNTER_API_KEY` for the LLM API key. Before publishing the repository, remove any fallback key from `config.py` and rotate any key that has been exposed.
+- ✅ Audit both input and generated output artifacts before publication; do not rely on placeholder hostnames alone.
 
 The demo data exists solely to illustrate the pipeline. Since we don't have permission to test against a live target, Stage 3 runs in demo mode (`DEMO_MODE = True`): HTTP requests are intercepted and the original HAR response is returned for every request.
 

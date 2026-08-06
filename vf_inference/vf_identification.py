@@ -9,9 +9,11 @@ Also provides LocateCodeContext to build the initial
 Smali inference context for a given VF.
 
 HAR entries (from har_loader.load_har) are accepted directly.
-parse_har_entries() normalises them into the internal format:
+parse_har_entries() normalises them into the internal format. The request
+body remains the exact captured byte string because signatures frequently
+depend on whitespace and key ordering:
     {
-        "request":  {"headers": {...}, "query": {...}, "body": {...}},
+        "request":  {"headers": {...}, "query": {...}, "body": "..."},
         "response": {"body": {...}}
     }
 """
@@ -19,8 +21,11 @@ parse_har_entries() normalises them into the internal format:
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from urllib.parse import urlparse
+
+from tdg_construction.token_utils import domain_key
 
 
 # ─── HAR Parser ───────────────────────────────────────────────────────────────
@@ -35,20 +40,25 @@ def parse_har_entries(entries: list[dict]) -> list[dict]:
         raw_url = raw_req.get("url", "")
         parsed_url = urlparse(raw_url)
 
+        raw_body = raw_req.get("postData", {}).get("text", "")
+        if not isinstance(raw_body, str):
+            raw_body = "" if raw_body is None else str(raw_body)
+
         request = {
             "method":  raw_req.get("method", "GET"),
             "url":     raw_url,
             "path":    parsed_url.path or "/",
             "headers": _pairs_to_dict(raw_req.get("headers", [])),
             "query":   _pairs_to_dict(raw_req.get("queryString", [])),
-            "body":    _parse_body(raw_req.get("postData", {}).get("text", "")),
+            "body":    raw_body,
+            "body_json": _parse_body(raw_body),
         }
 
         response = {
             "body": _parse_body(raw_resp.get("content", {}).get("text", "")),
         }
 
-        domain = parsed_url.netloc
+        domain = domain_key(raw_url)
         result.append({"domain": domain, "request": request, "response": response})
     return result
 
@@ -161,6 +171,17 @@ def locate_code_context(field_name: str, smali_dir: str) -> dict:
 
             # Tier 1: const-string "field_name" (exact field name as a string constant)
             if "const-string" in line_lower and f'"{field_lower}"' in line_lower:
+                direct_callee = _find_direct_callee(lines[i + 1:i + 10], smali_path)
+                if direct_callee:
+                    match["priority"] = 1
+                    match["selection_reason"] = (
+                        "Primary field write callsite: the target literal is "
+                        "immediately followed by a local computation call."
+                    )
+                    match["direct_callee"] = direct_callee
+                else:
+                    match["priority"] = 2
+                    match["selection_reason"] = "Exact target-field string literal."
                 string_const_matches.append(match)
             # Tier 2: header/parameter set with field name
             elif any(kw in line_lower for kw in ("put", "set", "addheader", ".param")):
@@ -168,8 +189,25 @@ def locate_code_context(field_name: str, smali_dir: str) -> dict:
             else:
                 substring_matches.append(match)
 
-    # Merge: tier 1 first, then tier 2, then tier 3; cap at 30 matches total
-    all_matches = (string_const_matches + header_put_matches + substring_matches)[:30]
+    # Prefer a domain-facing write callsite where the field literal is followed
+    # by a computation call. Include that callee's complete method body before
+    # unrelated signer implementations so the LLM follows the observed path.
+    string_const_matches.sort(key=lambda item: item.get("priority", 99))
+    linked_matches: list[dict] = []
+    if string_const_matches:
+        direct_callee = string_const_matches[0].get("direct_callee")
+        if direct_callee:
+            linked = _load_smali_method(smali_path, direct_callee)
+            if linked:
+                linked_matches.append(linked)
+
+    all_matches = (
+        string_const_matches[:1]
+        + linked_matches
+        + string_const_matches[1:]
+        + header_put_matches
+        + substring_matches
+    )[:30]
 
     return {
         "target_field": field_name,
@@ -178,12 +216,79 @@ def locate_code_context(field_name: str, smali_dir: str) -> dict:
             f"Found {len(string_const_matches)} string-constant matches, "
             f"{len(header_put_matches)} header-put matches, "
             f"{len(substring_matches)} substring matches "
-            f"for field '{field_name}' in Smali code."
+            f"for field '{field_name}' in Smali code. "
+            "Matches are priority ordered. Start from source_functions[0] and "
+            "follow its direct_callee/source_functions[1] before considering "
+            "other implementations. Do not select an unrelated signer merely "
+            "because it is more complex."
         ),
     }
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
+
+_INVOKE_RE = re.compile(
+    r"invoke-\S+\s+\{[^}]*\},\s+L(?P<class>[^;]+);->(?P<method>[^ (]+)\("
+)
+_FIELD_SETTER_METHODS = {
+    "addheader", "header", "put", "putheader", "set", "setheader",
+}
+
+
+def _find_direct_callee(lines: list[str], smali_root: Path) -> dict | None:
+    """Find the first non-setter method invoked after a field literal."""
+    for line in lines:
+        match = _INVOKE_RE.search(line)
+        if not match:
+            continue
+        method = match.group("method")
+        if method.lower() in _FIELD_SETTER_METHODS:
+            continue
+        class_name = match.group("class")
+        if not (smali_root / f"{class_name}.smali").is_file():
+            continue
+        return {"class": class_name, "method": method}
+    return None
+
+
+def _load_smali_method(smali_root: Path, callee: dict) -> dict | None:
+    """Load the complete local Smali method selected by a direct callsite."""
+    class_name = callee.get("class", "")
+    method_name = callee.get("method", "")
+    if not class_name or not method_name:
+        return None
+
+    target = smali_root / f"{class_name}.smali"
+    if not target.is_file():
+        return None
+    try:
+        lines = target.read_text(errors="ignore").splitlines()
+    except OSError:
+        return None
+
+    method_marker = re.compile(rf"^\.method\b.*\s{re.escape(method_name)}\(")
+    start = None
+    for index, line in enumerate(lines):
+        if method_marker.search(line.strip()):
+            start = index
+            break
+    if start is None:
+        return None
+
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        if lines[index].strip() == ".end method":
+            end = index + 1
+            break
+
+    return {
+        "file_path": str(target),
+        "line_number": start + 1,
+        "snippet": "\n".join(lines[start:end]),
+        "priority": 1,
+        "selection_reason": "Complete method body directly called by primary field write site.",
+        "linked_from": callee,
+    }
 
 def _collect_values(obj, result: set):
     if isinstance(obj, dict):

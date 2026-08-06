@@ -1,12 +1,12 @@
 [
   {
-    "base_api_id": "GET https://apigateway.target-platform.example.com/ai/v1/getAIConfig",
+    "base_api_id": "GET https://apigateway.target-platform.example.com/api/assistant/config",
     "token_id": "apigateway.target-platform.example.com::authorization",
     "chain": [],
     "new_token_value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
     "request": {
       "method": "GET",
-      "url": "https://apigateway.target-platform.example.com/ai/v1/getAIConfig",
+      "url": "https://apigateway.target-platform.example.com/api/assistant/config",
       "httpVersion": "HTTP/1.1",
       "cookies": [],
       "headers": [
@@ -19,7 +19,7 @@
           "value": "AAA"
         },
         {
-          "name": "smdeviceid",
+          "name": "risk-device-id",
           "value": "AAA"
         },
         {
@@ -27,7 +27,7 @@
           "value": "AAA"
         },
         {
-          "name": "x-sdk-content-sha256",
+          "name": "x-demo-content-sha256",
           "value": "UNSIGNED-PAYLOAD"
         },
         {
@@ -39,7 +39,7 @@
           "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ"
         },
         {
-          "name": "x-ca-timestamp",
+          "name": "x-demo-timestamp",
           "value": "1759086374000"
         },
         {
@@ -47,8 +47,8 @@
           "value": "application/json; charset=utf-8"
         },
         {
-          "name": "v587sign",
-          "value": "SDK-HMAC-SHA256 Access=PLACEHOLDER_ACCESS, SignedHeaders=accept;accept-encoding;accept-language;authorization;content-type;deviceid;host;jpushdeviceid;platform;smdeviceid;user-agent;uuid;version;x-ca-timestamp;x-ca-version;x-sdk-content-sha256;x-sdk-date, Signature=86e8c1345e9cc8d610290a88ec9ee06163f3cd207b58d43581d61511f8cd0a23"
+          "name": "sign",
+          "value": "DEMO-HMAC-SHA256 Access=PLACEHOLDER_ACCESS, SignedHeaders=accept;accept-encoding;accept-language;authorization;content-type;deviceid;host;platform;push-device-id;risk-device-id;user-agent;uuid;version;x-demo-content-sha256;x-demo-date;x-demo-gateway-version;x-demo-timestamp, Signature=8b518ca606ded2435b3fabadd963eb796a32a510e49a35a58ce6526c107a7b94"
         },
         {
           "name": "platform",
@@ -71,15 +71,15 @@
           "value": "apigateway.target-platform.example.com"
         },
         {
-          "name": "x-ca-version",
+          "name": "x-demo-gateway-version",
           "value": "AAA"
         },
         {
-          "name": "x-sdk-date",
+          "name": "x-demo-date",
           "value": "20250929T030614Z"
         },
         {
-          "name": "jpushdeviceid",
+          "name": "push-device-id",
           "value": "AAA"
         }
       ],
@@ -90,13 +90,13 @@
     }
   },
   {
-    "base_api_id": "GET https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list",
+    "base_api_id": "GET https://apigateway.target-platform.example.com/api/settings/navigation",
     "token_id": "apigateway.target-platform.example.com::authorization",
     "chain": [],
     "new_token_value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
     "request": {
       "method": "GET",
-      "url": "https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list?type=AAA&version=AAA",
+      "url": "https://apigateway.target-platform.example.com/api/settings/navigation?type=AAA&version=AAA",
       "httpVersion": "HTTP/1.1",
       "cookies": [],
       "headers": [
@@ -109,7 +109,7 @@
           "value": "AAA"
         },
         {
-          "name": "smdeviceid",
+          "name": "risk-device-id",
           "value": "AAA"
         },
         {
@@ -117,7 +117,7 @@
           "value": "AAA"
         },
         {
-          "name": "x-sdk-content-sha256",
+          "name": "x-demo-content-sha256",
           "value": "UNSIGNED-PAYLOAD"
         },
         {
@@ -129,7 +129,7 @@
           "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ"
         },
         {
-          "name": "x-ca-timestamp",
+          "name": "x-demo-timestamp",
           "value": "1759086360000"
         },
         {
@@ -137,8 +137,8 @@
           "value": "application/json; charset=utf-8"
         },
         {
-          "name": "v587sign",
-          "value": "SDK-HMAC-SHA256 Access=PLACEHOLDER_ACCESS, SignedHeaders=accept;accept-encoding;accept-language;authorization;content-type;deviceid;host;jpushdeviceid;platform;smdeviceid;user-agent;uuid;version;x-ca-timestamp;x-ca-version;x-sdk-content-sha256;x-sdk-date, Signature=72d82274950718f113a70f59b972e07b387426cb89b0243cbdcf629979a78c3f"
+          "name": "sign",
+          "value": "DEMO-HMAC-SHA256 Access=PLACEHOLDER_ACCESS, SignedHeaders=accept;accept-encoding;accept-language;authorization;content-type;deviceid;host;platform;push-device-id;risk-device-id;user-agent;uuid;version;x-demo-content-sha256;x-demo-date;x-demo-gateway-version;x-demo-timestamp, Signature=a2f212b41f6ecf0d52aec173d3a3d23068ab620fcdfca69f313f19d3d8350984"
         },
         {
           "name": "platform",
@@ -161,15 +161,15 @@
           "value": "apigateway.target-platform.example.com"
         },
         {
-          "name": "x-ca-version",
+          "name": "x-demo-gateway-version",
           "value": "AAA"
         },
         {
-          "name": "x-sdk-date",
+          "name": "x-demo-date",
           "value": "20250929T030600Z"
         },
         {
-          "name": "jpushdeviceid",
+          "name": "push-device-id",
           "value": "AAA"
         }
       ],
@@ -189,13 +189,13 @@
     }
   },
   {
-    "base_api_id": "POST https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search",
+    "base_api_id": "POST https://apigateway.target-platform.example.com/api/catalog/search",
     "token_id": "apigateway.target-platform.example.com::authorization",
     "chain": [],
     "new_token_value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
     "request": {
       "method": "POST",
-      "url": "https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search",
+      "url": "https://apigateway.target-platform.example.com/api/catalog/search",
       "httpVersion": "HTTP/1.1",
       "cookies": [],
       "headers": [
@@ -208,7 +208,7 @@
           "value": "AAA"
         },
         {
-          "name": "smdeviceid",
+          "name": "risk-device-id",
           "value": "AAA"
         },
         {
@@ -216,7 +216,7 @@
           "value": "AAA"
         },
         {
-          "name": "x-sdk-content-sha256",
+          "name": "x-demo-content-sha256",
           "value": "UNSIGNED-PAYLOAD"
         },
         {
@@ -228,7 +228,7 @@
           "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ"
         },
         {
-          "name": "x-ca-timestamp",
+          "name": "x-demo-timestamp",
           "value": "1759086388000"
         },
         {
@@ -236,8 +236,8 @@
           "value": "application/json; charset=utf-8"
         },
         {
-          "name": "v587sign",
-          "value": "SDK-HMAC-SHA256 Access=PLACEHOLDER_ACCESS, SignedHeaders=accept;accept-encoding;accept-language;authorization;content-length;content-type;deviceid;host;jpushdeviceid;platform;smdeviceid;user-agent;uuid;version;x-ca-timestamp;x-ca-version;x-sdk-content-sha256;x-sdk-date, Signature=26b833632a3e6df91c925db70d02f169e173d9f8f4948bb0cbffada7ccd76e03"
+          "name": "sign",
+          "value": "DEMO-HMAC-SHA256 Access=PLACEHOLDER_ACCESS, SignedHeaders=accept;accept-encoding;accept-language;authorization;content-length;content-type;deviceid;host;platform;push-device-id;risk-device-id;user-agent;uuid;version;x-demo-content-sha256;x-demo-date;x-demo-gateway-version;x-demo-timestamp, Signature=91c624c8b9e486015e1947847fc73215a2cf980cdd8fcaf60d612ec2337c0c03"
         },
         {
           "name": "platform",
@@ -257,22 +257,22 @@
         },
         {
           "name": "content-length",
-          "value": "237"
+          "value": "239"
         },
         {
           "name": "host",
           "value": "apigateway.target-platform.example.com"
         },
         {
-          "name": "x-ca-version",
+          "name": "x-demo-gateway-version",
           "value": "AAA"
         },
         {
-          "name": "x-sdk-date",
+          "name": "x-demo-date",
           "value": "20250929T030628Z"
         },
         {
-          "name": "jpushdeviceid",
+          "name": "push-device-id",
           "value": "AAA"
         }
       ],
@@ -281,13 +281,13 @@
       "bodySize": -1,
       "postData": {
         "mimeType": "application/json",
-        "text": "{\"page\":1,\"pageSize\":36,\"keyword\":null,\"newProduct\":null,\"salesVolume\":null,\"isSearch\":false,\"minV\":null,\"maxV\":null,\"priceSort\":null,\"frontCategory1Id\":null,\"frontCategory2Id\":null,\"frontCategoryId\":null,\"inStock\":null,\"orderCode\":null}"
+        "text": "{\"page\":1,\"pageSize\":36,\"keyword\":null,\"newItem\":null,\"popularity\":null,\"isSearch\":false,\"minValue\":null,\"maxValue\":null,\"priceSort\":null,\"primaryCategoryId\":null,\"secondaryCategoryId\":null,\"categoryId\":null,\"inStock\":null,\"sortCode\":null}"
       },
       "_startTimestamp": "2025-09-29T03:05:42.100Z"
     }
   },
   {
-    "base_api_id": "GET https://apigateway.target-platform.example.com/ai/v1/getAIConfig",
+    "base_api_id": "GET https://apigateway.target-platform.example.com/api/assistant/config",
     "token_id": "apigateway.target-platform.example.com::authorization",
     "chain": [
       "apigateway.target-platform.example.com::refreshToken",
@@ -296,7 +296,7 @@
     "new_token_value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
     "request": {
       "method": "GET",
-      "url": "https://apigateway.target-platform.example.com/ai/v1/getAIConfig",
+      "url": "https://apigateway.target-platform.example.com/api/assistant/config",
       "httpVersion": "HTTP/1.1",
       "cookies": [],
       "headers": [
@@ -309,7 +309,7 @@
           "value": "AAA"
         },
         {
-          "name": "smdeviceid",
+          "name": "risk-device-id",
           "value": "AAA"
         },
         {
@@ -317,7 +317,7 @@
           "value": "AAA"
         },
         {
-          "name": "x-sdk-content-sha256",
+          "name": "x-demo-content-sha256",
           "value": "UNSIGNED-PAYLOAD"
         },
         {
@@ -331,10 +331,6 @@
         {
           "name": "content-type",
           "value": "application/json; charset=utf-8"
-        },
-        {
-          "name": "v587sign",
-          "value": "SDK-HMAC-SHA256 Access=PLACEHOLDER_ACCESS, SignedHeaders=accept;accept-encoding;accept-language;authorization;content-type;deviceid;host;jpushdeviceid;platform;smdeviceid;user-agent;uuid;version;x-ca-timestamp;x-ca-version;x-sdk-content-sha256;x-sdk-date, Signature=4db2dfb04514751172df392c9f4008a35b716b3764eb0429e39234ff73d60778"
         },
         {
           "name": "platform",
@@ -357,20 +353,24 @@
           "value": "apigateway.target-platform.example.com"
         },
         {
-          "name": "x-ca-version",
+          "name": "x-demo-gateway-version",
           "value": "AAA"
         },
         {
-          "name": "jpushdeviceid",
+          "name": "push-device-id",
           "value": "AAA"
         },
         {
-          "name": "x-sdk-date",
-          "value": "20260723T072435Z"
+          "name": "x-demo-timestamp",
+          "value": "1785909579281"
         },
         {
-          "name": "x-ca-timestamp",
-          "value": "1784791475979"
+          "name": "x-demo-date",
+          "value": "20260805T055939Z"
+        },
+        {
+          "name": "sign",
+          "value": "DEMO-HMAC-SHA256 Access=PLACEHOLDER_ACCESS, SignedHeaders=accept;accept-encoding;accept-language;authorization;content-type;deviceid;host;platform;push-device-id;risk-device-id;user-agent;uuid;version;x-demo-content-sha256;x-demo-date;x-demo-gateway-version;x-demo-timestamp, Signature=0ebf442cc87fd4bbb4a6149c3de49492a97407712edf90c16775db7a8f8f982e"
         }
       ],
       "queryString": [],
@@ -379,11 +379,14 @@
       "_startTimestamp": "2025-09-29T03:05:37.100Z",
       "query": {},
       "body": "",
-      "path": "/ai/v1/getAIConfig"
+      "path": "/api/assistant/config",
+      "postData": {
+        "text": ""
+      }
     }
   },
   {
-    "base_api_id": "GET https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list",
+    "base_api_id": "GET https://apigateway.target-platform.example.com/api/settings/navigation",
     "token_id": "apigateway.target-platform.example.com::authorization",
     "chain": [
       "apigateway.target-platform.example.com::refreshToken",
@@ -392,7 +395,7 @@
     "new_token_value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
     "request": {
       "method": "GET",
-      "url": "https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list?type=AAA&version=AAA",
+      "url": "https://apigateway.target-platform.example.com/api/settings/navigation?type=AAA&version=AAA",
       "httpVersion": "HTTP/1.1",
       "cookies": [],
       "headers": [
@@ -405,7 +408,7 @@
           "value": "AAA"
         },
         {
-          "name": "smdeviceid",
+          "name": "risk-device-id",
           "value": "AAA"
         },
         {
@@ -413,7 +416,7 @@
           "value": "AAA"
         },
         {
-          "name": "x-sdk-content-sha256",
+          "name": "x-demo-content-sha256",
           "value": "UNSIGNED-PAYLOAD"
         },
         {
@@ -427,10 +430,6 @@
         {
           "name": "content-type",
           "value": "application/json; charset=utf-8"
-        },
-        {
-          "name": "v587sign",
-          "value": "SDK-HMAC-SHA256 Access=PLACEHOLDER_ACCESS, SignedHeaders=accept;accept-encoding;accept-language;authorization;content-type;deviceid;host;jpushdeviceid;platform;smdeviceid;user-agent;uuid;version;x-ca-timestamp;x-ca-version;x-sdk-content-sha256;x-sdk-date, Signature=c0907e212ad1f94007339b3325bef745a8172790fba25d64c9ccb0e90c9bf939"
         },
         {
           "name": "platform",
@@ -453,20 +452,24 @@
           "value": "apigateway.target-platform.example.com"
         },
         {
-          "name": "x-ca-version",
+          "name": "x-demo-gateway-version",
           "value": "AAA"
         },
         {
-          "name": "jpushdeviceid",
+          "name": "push-device-id",
           "value": "AAA"
         },
         {
-          "name": "x-sdk-date",
-          "value": "20260723T072435Z"
+          "name": "x-demo-timestamp",
+          "value": "1785909579292"
         },
         {
-          "name": "x-ca-timestamp",
-          "value": "1784791475979"
+          "name": "x-demo-date",
+          "value": "20260805T055939Z"
+        },
+        {
+          "name": "sign",
+          "value": "DEMO-HMAC-SHA256 Access=PLACEHOLDER_ACCESS, SignedHeaders=accept;accept-encoding;accept-language;authorization;content-type;deviceid;host;platform;push-device-id;risk-device-id;user-agent;uuid;version;x-demo-content-sha256;x-demo-date;x-demo-gateway-version;x-demo-timestamp, Signature=c2259108eac00836d71a71c73abcde7f67a80478e5d23ffdcbbf1965888f421c"
         }
       ],
       "queryString": [
@@ -487,11 +490,14 @@
         "version": "AAA"
       },
       "body": "",
-      "path": "/app/settings/api/v1/navigation/list"
+      "path": "/api/settings/navigation",
+      "postData": {
+        "text": ""
+      }
     }
   },
   {
-    "base_api_id": "POST https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search",
+    "base_api_id": "POST https://apigateway.target-platform.example.com/api/catalog/search",
     "token_id": "apigateway.target-platform.example.com::authorization",
     "chain": [
       "apigateway.target-platform.example.com::refreshToken",
@@ -500,7 +506,7 @@
     "new_token_value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
     "request": {
       "method": "POST",
-      "url": "https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search",
+      "url": "https://apigateway.target-platform.example.com/api/catalog/search",
       "httpVersion": "HTTP/1.1",
       "cookies": [],
       "headers": [
@@ -513,7 +519,7 @@
           "value": "AAA"
         },
         {
-          "name": "smdeviceid",
+          "name": "risk-device-id",
           "value": "AAA"
         },
         {
@@ -521,7 +527,7 @@
           "value": "AAA"
         },
         {
-          "name": "x-sdk-content-sha256",
+          "name": "x-demo-content-sha256",
           "value": "UNSIGNED-PAYLOAD"
         },
         {
@@ -535,10 +541,6 @@
         {
           "name": "content-type",
           "value": "application/json; charset=utf-8"
-        },
-        {
-          "name": "v587sign",
-          "value": "SDK-HMAC-SHA256 Access=PLACEHOLDER_ACCESS, SignedHeaders=accept;accept-encoding;accept-language;authorization;content-length;content-type;deviceid;host;jpushdeviceid;platform;smdeviceid;user-agent;uuid;version;x-ca-timestamp;x-ca-version;x-sdk-content-sha256;x-sdk-date, Signature=9d6ea790869b436816bdee892ce24087030ad950f5e39974ebd65559a7f7a890"
         },
         {
           "name": "platform",
@@ -558,27 +560,31 @@
         },
         {
           "name": "content-length",
-          "value": "237"
+          "value": "239"
         },
         {
           "name": "host",
           "value": "apigateway.target-platform.example.com"
         },
         {
-          "name": "x-ca-version",
+          "name": "x-demo-gateway-version",
           "value": "AAA"
         },
         {
-          "name": "jpushdeviceid",
+          "name": "push-device-id",
           "value": "AAA"
         },
         {
-          "name": "x-sdk-date",
-          "value": "20260723T072435Z"
+          "name": "x-demo-timestamp",
+          "value": "1785909579303"
         },
         {
-          "name": "x-ca-timestamp",
-          "value": "1784791475980"
+          "name": "x-demo-date",
+          "value": "20260805T055939Z"
+        },
+        {
+          "name": "sign",
+          "value": "DEMO-HMAC-SHA256 Access=PLACEHOLDER_ACCESS, SignedHeaders=accept;accept-encoding;accept-language;authorization;content-length;content-type;deviceid;host;platform;push-device-id;risk-device-id;user-agent;uuid;version;x-demo-content-sha256;x-demo-date;x-demo-gateway-version;x-demo-timestamp, Signature=535c7c0c23dfe9dadf22ef6b68dd4b41e69a23c08923545517b3b7382e369d5e"
         }
       ],
       "queryString": [],
@@ -586,12 +592,12 @@
       "bodySize": -1,
       "postData": {
         "mimeType": "application/json",
-        "text": "{\"page\":1,\"pageSize\":36,\"keyword\":null,\"newProduct\":null,\"salesVolume\":null,\"isSearch\":false,\"minV\":null,\"maxV\":null,\"priceSort\":null,\"frontCategory1Id\":null,\"frontCategory2Id\":null,\"frontCategoryId\":null,\"inStock\":null,\"orderCode\":null}"
+        "text": "{\"page\":1,\"pageSize\":36,\"keyword\":null,\"newItem\":null,\"popularity\":null,\"isSearch\":false,\"minValue\":null,\"maxValue\":null,\"priceSort\":null,\"primaryCategoryId\":null,\"secondaryCategoryId\":null,\"categoryId\":null,\"inStock\":null,\"sortCode\":null}"
       },
       "_startTimestamp": "2025-09-29T03:05:42.100Z",
       "query": {},
-      "body": "{\"page\":1,\"pageSize\":36,\"keyword\":null,\"newProduct\":null,\"salesVolume\":null,\"isSearch\":false,\"minV\":null,\"maxV\":null,\"priceSort\":null,\"frontCategory1Id\":null,\"frontCategory2Id\":null,\"frontCategoryId\":null,\"inStock\":null,\"orderCode\":null}",
-      "path": "/app/mall/api/v2/goods/search"
+      "body": "{\"page\":1,\"pageSize\":36,\"keyword\":null,\"newItem\":null,\"popularity\":null,\"isSearch\":false,\"minValue\":null,\"maxValue\":null,\"priceSort\":null,\"primaryCategoryId\":null,\"secondaryCategoryId\":null,\"categoryId\":null,\"inStock\":null,\"sortCode\":null}",
+      "path": "/api/catalog/search"
     }
   }
 ]

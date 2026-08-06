@@ -20,7 +20,7 @@ Instructions:
 3. Fix ONLY the bug — do not rewrite working logic.
 4. Pay special attention to:
    - Canonical string structure (count the \n sections in smali!)
-   - Content hash source (x-sdk-content-sha256 header vs SHA256(body))
+   - Content hash source (x-demo-content-sha256 header vs SHA256(body))
    - HMAC target (is it signing string-to-sign or canonical request?)
    - Header sorting (case-insensitive in smali?)
    - Path encoding (URL encoding rules in smali)

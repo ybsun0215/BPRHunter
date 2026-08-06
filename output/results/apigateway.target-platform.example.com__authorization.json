@@ -1,6 +1,6 @@
 [
   {
-    "base_api_id": "GET https://apigateway.target-platform.example.com/ai/v1/getAIConfig",
+    "base_api_id": "GET https://apigateway.target-platform.example.com/api/assistant/config",
     "token_id": "apigateway.target-platform.example.com::authorization",
     "chain": [],
     "new_token_value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
@@ -12,7 +12,7 @@
     "error": ""
   },
   {
-    "base_api_id": "GET https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list",
+    "base_api_id": "GET https://apigateway.target-platform.example.com/api/settings/navigation",
     "token_id": "apigateway.target-platform.example.com::authorization",
     "chain": [],
     "new_token_value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
@@ -24,7 +24,7 @@
     "error": ""
   },
   {
-    "base_api_id": "POST https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search",
+    "base_api_id": "POST https://apigateway.target-platform.example.com/api/catalog/search",
     "token_id": "apigateway.target-platform.example.com::authorization",
     "chain": [],
     "new_token_value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMDAxIiwiaWF0IjoxNzU5MTE1MTMyLCJleHAiOjE3NTkyMDE1MzJ9.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABERU1PX1NJR05BVFVSRV9FTkQ",
@@ -36,7 +36,7 @@
     "error": ""
   },
   {
-    "base_api_id": "GET https://apigateway.target-platform.example.com/ai/v1/getAIConfig",
+    "base_api_id": "GET https://apigateway.target-platform.example.com/api/assistant/config",
     "token_id": "apigateway.target-platform.example.com::authorization",
     "chain": [
       "apigateway.target-platform.example.com::refreshToken",
@@ -51,7 +51,7 @@
     "error": ""
   },
   {
-    "base_api_id": "GET https://apigateway.target-platform.example.com/app/settings/api/v1/navigation/list",
+    "base_api_id": "GET https://apigateway.target-platform.example.com/api/settings/navigation",
     "token_id": "apigateway.target-platform.example.com::authorization",
     "chain": [
       "apigateway.target-platform.example.com::refreshToken",
@@ -66,7 +66,7 @@
     "error": ""
   },
   {
-    "base_api_id": "POST https://apigateway.target-platform.example.com/app/mall/api/v2/goods/search",
+    "base_api_id": "POST https://apigateway.target-platform.example.com/api/catalog/search",
     "token_id": "apigateway.target-platform.example.com::authorization",
     "chain": [
       "apigateway.target-platform.example.com::refreshToken",
