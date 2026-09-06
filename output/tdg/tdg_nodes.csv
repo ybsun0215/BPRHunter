@@ -1,0 +1,8 @@
+"id","type","host","field","method","url","label"
+"GET https://apigateway.target-platform.example.com/api/assistant/config","api","","","GET","https://apigateway.target-platform.example.com/api/assistant/config","GET https://apigateway.target-platform.example.com/api/assistant/config"
+"GET https://apigateway.target-platform.example.com/api/auth/refresh","api","","","GET","https://apigateway.target-platform.example.com/api/auth/refresh","GET https://apigateway.target-platform.example.com/api/auth/refresh"
+"GET https://apigateway.target-platform.example.com/api/settings/navigation","api","","","GET","https://apigateway.target-platform.example.com/api/settings/navigation","GET https://apigateway.target-platform.example.com/api/settings/navigation"
+"POST https://apigateway.target-platform.example.com/api/auth/login","api","","","POST","https://apigateway.target-platform.example.com/api/auth/login","POST https://apigateway.target-platform.example.com/api/auth/login"
+"POST https://apigateway.target-platform.example.com/api/catalog/search","api","","","POST","https://apigateway.target-platform.example.com/api/catalog/search","POST https://apigateway.target-platform.example.com/api/catalog/search"
+"apigateway.target-platform.example.com::authorization","auth_token","apigateway.target-platform.example.com","authorization","","","authorization"
+"apigateway.target-platform.example.com::refreshToken","refresh_token","apigateway.target-platform.example.com","refreshToken","","","refreshToken"

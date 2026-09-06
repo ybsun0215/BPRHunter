@@ -1,0 +1,122 @@
+{
+  "nodes": [
+    {
+      "id": "apigateway.target-platform.example.com::authorization",
+      "type": "auth_token",
+      "host": "apigateway.target-platform.example.com",
+      "field": "authorization",
+      "issuer_host": "apigateway.target-platform.example.com",
+      "issuer_field": "authorization",
+      "consumer_hosts": [
+        "apigateway.target-platform.example.com"
+      ],
+      "consumer_fields": {
+        "apigateway.target-platform.example.com": [
+          "authorization"
+        ]
+      },
+      "label": "authorization"
+    },
+    {
+      "id": "apigateway.target-platform.example.com::refreshToken",
+      "type": "refresh_token",
+      "host": "apigateway.target-platform.example.com",
+      "field": "refreshToken",
+      "issuer_host": "apigateway.target-platform.example.com",
+      "issuer_field": "refreshToken",
+      "consumer_hosts": [
+        "apigateway.target-platform.example.com"
+      ],
+      "consumer_fields": {
+        "apigateway.target-platform.example.com": [
+          "refreshToken"
+        ]
+      },
+      "label": "refreshToken"
+    },
+    {
+      "id": "POST https://apigateway.target-platform.example.com/api/auth/login",
+      "type": "api",
+      "method": "POST",
+      "url": "https://apigateway.target-platform.example.com/api/auth/login",
+      "label": "POST https://apigateway.target-platform.example.com/api/auth/login"
+    },
+    {
+      "id": "GET https://apigateway.target-platform.example.com/api/auth/refresh",
+      "type": "api",
+      "method": "GET",
+      "url": "https://apigateway.target-platform.example.com/api/auth/refresh",
+      "label": "GET https://apigateway.target-platform.example.com/api/auth/refresh"
+    },
+    {
+      "id": "GET https://apigateway.target-platform.example.com/api/settings/navigation",
+      "type": "api",
+      "method": "GET",
+      "url": "https://apigateway.target-platform.example.com/api/settings/navigation",
+      "label": "GET https://apigateway.target-platform.example.com/api/settings/navigation"
+    },
+    {
+      "id": "GET https://apigateway.target-platform.example.com/api/assistant/config",
+      "type": "api",
+      "method": "GET",
+      "url": "https://apigateway.target-platform.example.com/api/assistant/config",
+      "label": "GET https://apigateway.target-platform.example.com/api/assistant/config"
+    },
+    {
+      "id": "POST https://apigateway.target-platform.example.com/api/catalog/search",
+      "type": "api",
+      "method": "POST",
+      "url": "https://apigateway.target-platform.example.com/api/catalog/search",
+      "label": "POST https://apigateway.target-platform.example.com/api/catalog/search"
+    }
+  ],
+  "edges": [
+    {
+      "src": "GET https://apigateway.target-platform.example.com/api/auth/refresh",
+      "type": "Issue",
+      "dst": "apigateway.target-platform.example.com::authorization",
+      "field": "authorization"
+    },
+    {
+      "src": "POST https://apigateway.target-platform.example.com/api/auth/login",
+      "type": "Issue",
+      "dst": "apigateway.target-platform.example.com::authorization",
+      "field": "authorization"
+    },
+    {
+      "src": "POST https://apigateway.target-platform.example.com/api/auth/login",
+      "type": "Issue",
+      "dst": "apigateway.target-platform.example.com::refreshToken",
+      "field": "refreshToken"
+    },
+    {
+      "src": "apigateway.target-platform.example.com::authorization",
+      "type": "UsedIn",
+      "dst": "GET https://apigateway.target-platform.example.com/api/assistant/config",
+      "field": "authorization"
+    },
+    {
+      "src": "apigateway.target-platform.example.com::authorization",
+      "type": "UsedIn",
+      "dst": "GET https://apigateway.target-platform.example.com/api/settings/navigation",
+      "field": "authorization"
+    },
+    {
+      "src": "apigateway.target-platform.example.com::authorization",
+      "type": "UsedIn",
+      "dst": "POST https://apigateway.target-platform.example.com/api/catalog/search",
+      "field": "authorization"
+    },
+    {
+      "src": "apigateway.target-platform.example.com::refreshToken",
+      "type": "Generate",
+      "dst": "apigateway.target-platform.example.com::authorization"
+    },
+    {
+      "src": "apigateway.target-platform.example.com::refreshToken",
+      "type": "UsedIn",
+      "dst": "GET https://apigateway.target-platform.example.com/api/auth/refresh",
+      "field": "refreshToken"
+    }
+  ]
+}
